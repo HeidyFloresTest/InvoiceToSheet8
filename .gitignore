@@ -1,0 +1,33 @@
+# Entornos virtuales de Python
+venv/
+env/
+.venv/
+ENV/
+
+# Bytecode y caches de Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Archivos de configuración con secretos
+.env
+.env.local
+
+# IDEs y editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Archivos temporales del sistema operativo
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+.DS_Store
+
+# Archivos generados de prueba o logs
+*.log
+facturas_consolidadas*.xlsx

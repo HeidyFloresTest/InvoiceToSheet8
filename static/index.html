@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InvoiceToSheet - Extractor Inteligente de Facturas a Excel</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#eff6ff',
+                            100: '#dbeafe',
+                            500: '#3b82f6',
+                            600: '#2563eb',
+                            700: '#1d4ed8',
+                            900: '#1e3a8a',
+                        },
+                        accent: {
+                            500: '#10b981',
+                            600: '#059669',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(226, 232, 240, 0.8);
+        }
+        .dragover {
+            border-color: #2563eb !important;
+            background-color: #eff6ff !important;
+            transform: scale(1.005);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+        .table-input {
+            width: 100%;
+            background: transparent;
+            border: 1px solid transparent;
+            border-radius: 0.375rem;
+            padding: 0.25rem 0.5rem;
+            transition: all 0.15s ease-in-out;
+            font-size: 0.875rem;
+        }
+        .table-input:hover {
+            border-color: #e2e8f0;
+            background-color: #f8fafc;
+        }
+        .table-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            background-color: #ffffff;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+        }
+    </style>
+</head>
+<body class="min-h-full flex flex-col text-slate-800 antialiased">
+
+    <!-- Header Corporativo -->
+    <header class="border-b border-slate-200 bg-white sticky top-0 z-40 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-700 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+                    <i data-lucide="sheet" class="w-5 h-5"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold text-slate-900 tracking-tight flex items-center gap-2">
+                        InvoiceToSheet
+                        <span class="text-xs font-semibold px-2 py-0.5 rounded-full bg-blue-100 text-blue-700">MVP v1.0</span>
+                    </h1>
+                    <p class="text-xs text-slate-500">Extracción y consolidación contable automatizada</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                    <span class="w-2 h-2 mr-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    API Activa
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenido Principal -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+        <!-- Banner Introductorio -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 rounded-2xl p-6 sm:p-8 text-white shadow-xl">
+            <div class="space-y-2 max-w-2xl">
+                <h2 class="text-2xl sm:text-3xl font-extrabold tracking-tight">
+                    Transforma Facturas PDF en un Excel Estructurado en Segundos
+                </h2>
+                <p class="text-slate-300 text-sm sm:text-base leading-relaxed">
+                    Sube desde una factura hasta cientos de comprobantes. El motor inteligente extraerá 
+                    número de folio, proveedor, ID fiscal, fechas, importes e impuestos para generar una planilla lista para contabilidad.
+                </p>
+            </div>
+            <div class="flex flex-wrap items-center gap-3">
+                <div class="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/10 text-center min-w-[110px]">
+                    <div class="text-xs uppercase text-slate-400 font-semibold">Motor</div>
+                    <div class="text-sm font-bold text-white flex items-center justify-center gap-1 mt-0.5">
+                        <i data-lucide="cpu" class="w-4 h-4 text-blue-400"></i> Híbrido
+                    </div>
+                </div>
+                <div class="bg-white/10 backdrop-blur-md rounded-xl p-3 border border-white/10 text-center min-w-[110px]">
+                    <div class="text-xs uppercase text-slate-400 font-semibold">Formato</div>
+                    <div class="text-sm font-bold text-emerald-400 flex items-center justify-center gap-1 mt-0.5">
+                        <i data-lucide="file-spreadsheet" class="w-4 h-4"></i> .XLSX
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección de Carga: Drag & Drop Zone -->
+        <section class="glass-panel rounded-2xl p-6 sm:p-8 shadow-sm">
+            <div id="drop-zone" class="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-2xl p-8 sm:p-12 text-center transition-all duration-200 cursor-pointer bg-slate-50/50 hover:bg-blue-50/40 relative">
+                <input type="file" id="file-input" multiple accept=".pdf" class="hidden">
+                
+                <div class="max-w-md mx-auto space-y-4">
+                    <div class="w-16 h-16 mx-auto rounded-2xl bg-blue-100 text-blue-600 flex items-center justify-center shadow-inner">
+                        <i data-lucide="upload-cloud" class="w-8 h-8"></i>
+                    </div>
+                    <div>
+                        <p class="text-base font-semibold text-slate-800">
+                            Arrastra y suelta tus facturas PDF aquí
+                        </p>
+                        <p class="text-sm text-slate-500 mt-1">
+                            o <span class="text-blue-600 font-medium underline underline-offset-2">haz clic para examinar archivos</span> desde tu equipo
+                        </p>
+                    </div>
+                    <p class="text-xs text-slate-400">
+                        Soporta procesamiento simultáneo de hasta 50 archivos PDF en lote
+                    </p>
+                </div>
+            </div>
+
+            <!-- Lista de Archivos Seleccionados / Cola -->
+            <div id="file-queue-container" class="mt-6 hidden">
+                <div class="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
+                    <div class="flex items-center gap-2">
+                        <span class="font-semibold text-slate-800 text-sm">Archivos en cola para procesar:</span>
+                        <span id="queue-badge" class="px-2 py-0.5 text-xs font-bold rounded-full bg-blue-100 text-blue-700">0</span>
+                    </div>
+                    <button id="btn-clear-queue" class="text-xs font-medium text-rose-600 hover:text-rose-700 transition flex items-center gap-1">
+                        <i data-lucide="trash-2" class="w-3.5 h-3.5"></i> Limpiar cola
+                    </button>
+                </div>
+
+                <div id="file-list" class="max-h-48 overflow-y-auto space-y-2 pr-1">
+                    <!-- Elementos inyectados por JS -->
+                </div>
+
+                <!-- Barra de Acciones de Procesamiento -->
+                <div class="mt-6 flex flex-col sm:flex-row items-center justify-end gap-3 pt-4 border-t border-slate-100">
+                    <button id="btn-process" class="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white font-semibold text-sm shadow-md shadow-blue-500/25 transition-all flex items-center justify-center gap-2">
+                        <i data-lucide="play" class="w-4 h-4 fill-current"></i>
+                        Procesar Facturas Ahora
+                    </button>
+                </div>
+            </div>
+
+            <!-- Barra de Progreso y Loader -->
+            <div id="progress-container" class="mt-6 hidden space-y-2">
+                <div class="flex justify-between text-xs font-semibold text-slate-600">
+                    <span id="progress-label" class="flex items-center gap-2">
+                        <i data-lucide="loader-2" class="w-4 h-4 text-blue-600 animate-spin"></i>
+                        Extrayendo datos de facturas...
+                    </span>
+                    <span id="progress-percent">0%</span>
+                </div>
+                <div class="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                    <div id="progress-bar" class="bg-blue-600 h-2.5 rounded-full transition-all duration-300 w-0"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sección de Resultados: Métricas e Interactive Preview Table -->
+        <section id="results-section" class="space-y-6 hidden">
+
+            <!-- Fila de Tarjetas de Resumen KPI -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="glass-panel p-5 rounded-xl shadow-sm border-l-4 border-l-blue-500">
+                    <div class="text-xs uppercase font-bold text-slate-500">Facturas Procesadas</div>
+                    <div id="kpi-total-docs" class="text-2xl font-extrabold text-slate-800 mt-1">0</div>
+                    <div class="text-xs text-slate-400 mt-1">Documentos en la sesión actual</div>
+                </div>
+
+                <div class="glass-panel p-5 rounded-xl shadow-sm border-l-4 border-l-emerald-500">
+                    <div class="text-xs uppercase font-bold text-slate-500">Monto Total Consolidado</div>
+                    <div id="kpi-total-amount" class="text-2xl font-extrabold text-emerald-600 mt-1">$0.00</div>
+                    <div class="text-xs text-slate-400 mt-1">Suma acumulada de facturas</div>
+                </div>
+
+                <div class="glass-panel p-5 rounded-xl shadow-sm border-l-4 border-l-indigo-500">
+                    <div class="text-xs uppercase font-bold text-slate-500">Total Impuestos (IVA/Tax)</div>
+                    <div id="kpi-total-taxes" class="text-2xl font-extrabold text-indigo-600 mt-1">$0.00</div>
+                    <div class="text-xs text-slate-400 mt-1">Impuestos globales calculados</div>
+                </div>
+
+                <div class="glass-panel p-5 rounded-xl shadow-sm border-l-4 border-l-amber-500">
+                    <div class="text-xs uppercase font-bold text-slate-500">Revisión Requerida</div>
+                    <div id="kpi-warnings" class="text-2xl font-extrabold text-amber-600 mt-1">0</div>
+                    <div class="text-xs text-slate-400 mt-1">Facturas con campos por verificar</div>
+                </div>
+            </div>
+
+            <!-- Contenedor de la Tabla Interactiva -->
+            <div class="glass-panel rounded-2xl shadow-sm overflow-hidden">
+                <!-- Barra superior de la tabla -->
+                <div class="p-4 sm:p-5 border-b border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-50/50">
+                    <div>
+                        <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                            <i data-lucide="table" class="w-4 h-4 text-blue-600"></i>
+                            Previsualización y Edición de Facturas
+                        </h3>
+                        <p class="text-xs text-slate-500 mt-0.5">
+                            Puedes hacer clic directamente en cualquier celda para corregir o completar la información antes de generar el Excel.
+                        </p>
+                    </div>
+
+                    <div class="flex items-center gap-2.5 w-full sm:w-auto">
+                        <button id="btn-add-row" class="px-3 py-1.5 rounded-lg border border-slate-300 hover:bg-slate-100 text-slate-700 text-xs font-semibold transition flex items-center gap-1.5">
+                            <i data-lucide="plus" class="w-3.5 h-3.5"></i> Agregar Fila
+                        </button>
+                        <button id="btn-download-excel" class="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white font-bold text-xs sm:text-sm shadow-md shadow-emerald-600/25 transition-all flex items-center gap-2">
+                            <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
+                            Descargar Excel Consolidado
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tabla de datos scrollable -->
+                <div class="overflow-x-auto max-h-[500px]">
+                    <table class="w-full text-left border-collapse text-xs sm:text-sm">
+                        <thead class="bg-slate-800 text-white sticky top-0 z-20">
+                            <tr>
+                                <th class="py-3 px-3 font-semibold text-center w-12">#</th>
+                                <th class="py-3 px-3 font-semibold text-center w-24">Estado</th>
+                                <th class="py-3 px-3 font-semibold min-w-[130px]">N° Factura</th>
+                                <th class="py-3 px-3 font-semibold min-w-[110px]">Fecha</th>
+                                <th class="py-3 px-3 font-semibold min-w-[180px]">Proveedor / Emisor</th>
+                                <th class="py-3 px-3 font-semibold min-w-[130px]">ID Fiscal</th>
+                                <th class="py-3 px-3 font-semibold min-w-[160px]">Cliente / Receptor</th>
+                                <th class="py-3 px-3 font-semibold w-20 text-center">Moneda</th>
+                                <th class="py-3 px-3 font-semibold min-w-[110px] text-right">Subtotal</th>
+                                <th class="py-3 px-3 font-semibold min-w-[100px] text-right">Impuestos</th>
+                                <th class="py-3 px-3 font-semibold min-w-[110px] text-right">Total</th>
+                                <th class="py-3 px-3 font-semibold min-w-[150px]">Archivo Origen</th>
+                                <th class="py-3 px-3 font-semibold text-center w-12">Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body" class="divide-y divide-slate-200 bg-white">
+                            <!-- Filas dinámicas -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pie de tabla informativo -->
+                <div class="p-3 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between text-xs text-slate-500">
+                    <span id="footer-count">Mostrando 0 facturas</span>
+                    <span class="flex items-center gap-4">
+                        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> Válido</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-amber-500"></span> Requiere Revisión</span>
+                        <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-rose-500"></span> Error</span>
+                    </span>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-slate-200 bg-white py-6 mt-12 text-center text-xs text-slate-400">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <span>InvoiceToSheet &copy; 2026. Procesamiento en memoria de alta seguridad.</span>
+            <span>Desarrollado para automatización contable y financiera.</span>
+        </div>
+    </footer>
+
+    <!-- Toast Notifications Container -->
+    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col space-y-2 pointer-events-none"></div>
+
+    <!-- Script de Lógica Frontend -->
+    <script>
+        // Estado de la aplicación
+        let queuedFiles = [];
+        let extractedInvoices = [];
+
+        // Elementos DOM
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const fileQueueContainer = document.getElementById('file-queue-container');
+        const fileList = document.getElementById('file-list');
+        const queueBadge = document.getElementById('queue-badge');
+        const btnClearQueue = document.getElementById('btn-clear-queue');
+        const btnProcess = document.getElementById('btn-process');
+        
+        const progressContainer = document.getElementById('progress-container');
+        const progressBar = document.getElementById('progress-bar');
+        const progressPercent = document.getElementById('progress-percent');
+        const progressLabel = document.getElementById('progress-label');
+
+        const resultsSection = document.getElementById('results-section');
+        const tableBody = document.getElementById('table-body');
+        const footerCount = document.getElementById('footer-count');
+        const btnDownloadExcel = document.getElementById('btn-download-excel');
+        const btnAddRow = document.getElementById('btn-add-row');
+
+        const kpiTotalDocs = document.getElementById('kpi-total-docs');
+        const kpiTotalAmount = document.getElementById('kpi-total-amount');
+        const kpiTotalTaxes = document.getElementById('kpi-total-taxes');
+        const kpiWarnings = document.getElementById('kpi-warnings');
+
+        // Inicializar iconos de Lucide
+        function refreshIcons() {
+            if (window.lucide) {
+                window.lucide.createIcons();
+            }
+        }
+        refreshIcons();
+
+        // Sistema de Notificaciones Toast
+        function showToast(message, type = 'info') {
+            const container = document.getElementById('toast-container');
+            const toast = document.createElement('div');
+            toast.className = `pointer-events-auto flex items-center gap-2.5 px-4 py-3 rounded-xl shadow-lg border text-xs sm:text-sm font-medium transition-all transform duration-300 translate-y-2 opacity-0`;
+            
+            let bgClass = "bg-white border-slate-200 text-slate-800";
+            let icon = "info";
+            if (type === 'success') {
+                bgClass = "bg-emerald-50 border-emerald-200 text-emerald-800";
+                icon = "check-circle";
+            } else if (type === 'error') {
+                bgClass = "bg-rose-50 border-rose-200 text-rose-800";
+                icon = "alert-circle";
+            } else if (type === 'warning') {
+                bgClass = "bg-amber-50 border-amber-200 text-amber-800";
+                icon = "alert-triangle";
+            }
+
+            toast.className += ` ${bgClass}`;
+            toast.innerHTML = `<i data-lucide="${icon}" class="w-4 h-4 flex-shrink-0"></i> <span>${message}</span>`;
+            container.appendChild(toast);
+            refreshIcons();
+
+            setTimeout(() => {
+                toast.classList.remove('translate-y-2', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'translate-y-2');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+
+        // =========================================================
+        // MANEJO DE DRAG & DROP Y SELECCIÓN DE ARCHIVOS
+        // =========================================================
+        dropZone.addEventListener('click', () => fileInput.click());
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropZone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                dropZone.classList.remove('dragover');
+            });
+        });
+
+        dropZone.addEventListener('drop', (e) => {
+            const files = Array.from(e.dataTransfer.files);
+            handleNewFiles(files);
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            handleNewFiles(files);
+            fileInput.value = ''; // Resetear para permitir seleccionar los mismos archivos
+        });
+
+        function handleNewFiles(files) {
+            const pdfs = files.filter(f => f.name.toLowerCase().endsWith('.pdf'));
+            if (pdfs.length === 0) {
+                showToast("Por favor selecciona únicamente archivos con extensión .pdf", "warning");
+                return;
+            }
+
+            // Evitar duplicados por nombre y tamaño
+            pdfs.forEach(file => {
+                const exists = queuedFiles.some(f => f.name === file.name && f.size === file.size);
+                if (!exists) {
+                    queuedFiles.push(file);
+                }
+            });
+
+            updateQueueUI();
+            showToast(`${pdfs.length} archivo(s) agregado(s) a la cola`, "info");
+        }
+
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        function updateQueueUI() {
+            if (queuedFiles.length > 0) {
+                fileQueueContainer.classList.remove('hidden');
+                queueBadge.textContent = queuedFiles.length;
+                fileList.innerHTML = '';
+
+                queuedFiles.forEach((file, index) => {
+                    const item = document.createElement('div');
+                    item.className = 'flex items-center justify-between p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-xs';
+                    item.innerHTML = `
+                        <div class="flex items-center gap-2.5 truncate">
+                            <i data-lucide="file-text" class="w-4 h-4 text-rose-500 flex-shrink-0"></i>
+                            <span class="font-medium text-slate-800 truncate">${file.name}</span>
+                            <span class="text-slate-400 font-mono">(${formatBytes(file.size)})</span>
+                        </div>
+                        <button onclick="removeQueuedFile(${index})" class="text-slate-400 hover:text-rose-600 p-1 rounded transition">
+                            <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                        </button>
+                    `;
+                    fileList.appendChild(item);
+                });
+                refreshIcons();
+            } else {
+                fileQueueContainer.classList.add('hidden');
+            }
+        }
+
+        window.removeQueuedFile = function(index) {
+            queuedFiles.splice(index, 1);
+            updateQueueUI();
+        };
+
+        btnClearQueue.addEventListener('click', () => {
+            queuedFiles = [];
+            updateQueueUI();
+            showToast("Cola de archivos limpiada", "info");
+        });
+
+        // =========================================================
+        // PROCESAMIENTO EN LOTE (ENVÍO A FASTAPI)
+        // =========================================================
+        btnProcess.addEventListener('click', async () => {
+            if (queuedFiles.length === 0) {
+                showToast("No hay archivos para procesar.", "warning");
+                return;
+            }
+
+            btnProcess.disabled = true;
+            btnProcess.classList.add('opacity-50', 'cursor-not-allowed');
+            progressContainer.classList.remove('hidden');
+            progressBar.style.width = '20%';
+            progressPercent.textContent = '20%';
+
+            const formData = new FormData();
+            queuedFiles.forEach(file => {
+                formData.append('files', file);
+            });
+
+            try {
+                progressBar.style.width = '60%';
+                progressPercent.textContent = '60%';
+
+                const response = await fetch('/api/extract', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || 'Error en la respuesta del servidor');
+                }
+
+                progressBar.style.width = '100%';
+                progressPercent.textContent = '100%';
+
+                const data = await response.json();
+                
+                // Agregar resultados a la lista existente
+                extractedInvoices = [...extractedInvoices, ...data.facturas];
+                
+                // Limpiar cola procesada
+                queuedFiles = [];
+                updateQueueUI();
+
+                renderTable();
+                showToast(`¡Procesamiento completo! ${data.total_exitosos} exitosas, ${data.total_con_advertencia} advertencias, ${data.total_con_error} errores.`, "success");
+
+            } catch (error) {
+                console.error(error);
+                showToast(`Error al procesar: ${error.message}`, "error");
+            } finally {
+                setTimeout(() => {
+                    progressContainer.classList.add('hidden');
+                    progressBar.style.width = '0%';
+                    btnProcess.disabled = false;
+                    btnProcess.classList.remove('opacity-50', 'cursor-not-allowed');
+                }, 800);
+            }
+        });
+
+        // =========================================================
+        // RENDERIZADO DE TABLA INTERACTIVA Y CÁLCULO DE KPIS
+        // =========================================================
+        function updateKPIs() {
+            kpiTotalDocs.textContent = extractedInvoices.length;
+            
+            let totalSum = 0;
+            let totalTaxesSum = 0;
+            let warningCount = 0;
+
+            extractedInvoices.forEach(inv => {
+                totalSum += parseFloat(inv.total) || 0;
+                totalTaxesSum += parseFloat(inv.impuestos) || 0;
+                if (inv.estado !== 'success') {
+                    warningCount++;
+                }
+            });
+
+            kpiTotalAmount.textContent = '$' + totalSum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            kpiTotalTaxes.textContent = '$' + totalTaxesSum.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            kpiWarnings.textContent = warningCount;
+        }
+
+        function renderTable() {
+            if (extractedInvoices.length === 0) {
+                resultsSection.classList.add('hidden');
+                return;
+            }
+
+            resultsSection.classList.remove('hidden');
+            tableBody.innerHTML = '';
+
+            extractedInvoices.forEach((inv, index) => {
+                const tr = document.createElement('tr');
+                tr.className = 'hover:bg-slate-50 transition border-b border-slate-100';
+
+                // Badge de estado
+                let badgeHtml = '';
+                if (inv.estado === 'success') {
+                    badgeHtml = '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-800">Válido</span>';
+                } else if (inv.estado === 'warning') {
+                    badgeHtml = `<span title="${inv.mensaje_error || 'Verificar campos'}" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-800 cursor-help">Revisar ⚠</span>`;
+                } else {
+                    badgeHtml = `<span title="${inv.mensaje_error || 'Error'}" class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-rose-100 text-rose-800 cursor-help">Error ✕</span>`;
+                }
+
+                tr.innerHTML = `
+                    <td class="py-2.5 px-3 text-center text-slate-400 font-mono text-xs">${index + 1}</td>
+                    <td class="py-2.5 px-3 text-center">${badgeHtml}</td>
+                    <td class="py-2.5 px-3">
+                        <input type="text" class="table-input font-medium text-slate-900" value="${escapeHtml(inv.numero_factura)}" onchange="updateField('${inv.id}', 'numero_factura', this.value)">
+                    </td>
+                    <td class="py-2.5 px-3">
+                        <input type="text" class="table-input" value="${escapeHtml(inv.fecha_emision)}" onchange="updateField('${inv.id}', 'fecha_emision', this.value)">
+                    </td>
+                    <td class="py-2.5 px-3">
+                        <input type="text" class="table-input font-medium" value="${escapeHtml(inv.nombre_proveedor)}" onchange="updateField('${inv.id}', 'nombre_proveedor', this.value)">
+                    </td>
+                    <td class="py-2.5 px-3">
+                        <input type="text" class="table-input font-mono" value="${escapeHtml(inv.id_fiscal_proveedor)}" onchange="updateField('${inv.id}', 'id_fiscal_proveedor', this.value)">
+                    </td>
+                    <td class="py-2.5 px-3">
+                        <input type="text" class="table-input" placeholder="Opcional" value="${escapeHtml(inv.nombre_cliente || '')}" onchange="updateField('${inv.id}', 'nombre_cliente', this.value)">
+                    </td>
+                    <td class="py-2.5 px-3 text-center">
+                        <input type="text" class="table-input text-center font-bold" value="${escapeHtml(inv.moneda)}" onchange="updateField('${inv.id}', 'moneda', this.value)">
+                    </td>
+                    <td class="py-2.5 px-3 text-right">
+                        <input type="number" step="0.01" class="table-input text-right font-mono" value="${inv.subtotal}" onchange="updateField('${inv.id}', 'subtotal', parseFloat(this.value) || 0)">
+                    </td>
+                    <td class="py-2.5 px-3 text-right">
+                        <input type="number" step="0.01" class="table-input text-right font-mono" value="${inv.impuestos}" onchange="updateField('${inv.id}', 'impuestos', parseFloat(this.value) || 0)">
+                    </td>
+                    <td class="py-2.5 px-3 text-right">
+                        <input type="number" step="0.01" class="table-input text-right font-bold font-mono text-emerald-700" value="${inv.total}" onchange="updateField('${inv.id}', 'total', parseFloat(this.value) || 0)">
+                    </td>
+                    <td class="py-2.5 px-3 text-slate-500 truncate max-w-[150px]" title="${escapeHtml(inv.nombre_archivo_origen)}">
+                        ${escapeHtml(inv.nombre_archivo_origen)}
+                    </td>
+                    <td class="py-2.5 px-3 text-center">
+                        <button onclick="deleteInvoiceRow('${inv.id}')" class="text-slate-400 hover:text-rose-600 p-1 rounded transition" title="Eliminar factura">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            footerCount.textContent = `Mostrando ${extractedInvoices.length} facturas listas para exportar`;
+            updateKPIs();
+            refreshIcons();
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return String(text)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        window.updateField = function(id, field, value) {
+            const invoice = extractedInvoices.find(item => item.id === id);
+            if (invoice) {
+                invoice[field] = value;
+                // Si el usuario corrigió el número y el total, podemos relajar el warning
+                if (invoice.numero_factura !== 'No identificado' && invoice.total > 0 && invoice.estado === 'warning') {
+                    invoice.estado = 'success';
+                }
+                updateKPIs();
+            }
+        };
+
+        window.deleteInvoiceRow = function(id) {
+            extractedInvoices = extractedInvoices.filter(item => item.id !== id);
+            renderTable();
+            showToast("Factura eliminada de la tabla", "info");
+        };
+
+        btnAddRow.addEventListener('click', () => {
+            const newInvoice = {
+                id: crypto.randomUUID ? crypto.randomUUID() : 'row_' + Date.now(),
+                numero_factura: 'MANUAL-' + (extractedInvoices.length + 1),
+                fecha_emision: new Date().toISOString().split('T')[0],
+                nombre_proveedor: 'Nuevo Proveedor',
+                id_fiscal_proveedor: 'RFC/RUT',
+                nombre_cliente: '',
+                subtotal: 0.0,
+                impuestos: 0.0,
+                total: 0.0,
+                moneda: 'USD',
+                nombre_archivo_origen: 'Entrada Manual',
+                estado: 'success',
+                mensaje_error: null,
+                metodo_extraccion: 'manual'
+            };
+            extractedInvoices.push(newInvoice);
+            renderTable();
+            showToast("Fila manual añadida", "info");
+        });
+
+        // =========================================================
+        // EXPORTACIÓN A EXCEL (.XLSX)
+        // =========================================================
+        btnDownloadExcel.addEventListener('click', async () => {
+            if (extractedInvoices.length === 0) {
+                showToast("No hay datos para exportar.", "warning");
+                return;
+            }
+
+            const originalBtnHtml = btnDownloadExcel.innerHTML;
+            btnDownloadExcel.disabled = true;
+            btnDownloadExcel.innerHTML = `<i data-lucide="loader-2" class="w-4 h-4 animate-spin"></i> Generando Excel...`;
+            refreshIcons();
+
+            try {
+                const response = await fetch('/api/export-excel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ facturas: extractedInvoices })
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.detail || 'Error al exportar Excel');
+                }
+
+                // Descargar el Blob binario
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `facturas_consolidadas_${new Date().toISOString().slice(0,10)}.xlsx`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+
+                showToast("¡Excel descargado exitosamente!", "success");
+
+            } catch (error) {
+                console.error(error);
+                showToast(`Error al exportar: ${error.message}`, "error");
+            } finally {
+                btnDownloadExcel.disabled = false;
+                btnDownloadExcel.innerHTML = originalBtnHtml;
+                refreshIcons();
+            }
+        });
+
+    </script>
+</body>
+</html>

@@ -28,6 +28,9 @@ Desktop.ini
 $RECYCLE.BIN/
 .DS_Store
 
+# Archivos de bloqueo de dependencias
+*.lock
+
 # Archivos generados de prueba o logs
 *.log
 facturas_consolidadas*.xlsx

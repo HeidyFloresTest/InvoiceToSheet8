@@ -28,8 +28,11 @@ Desktop.ini
 $RECYCLE.BIN/
 .DS_Store
 
-# Archivos de bloqueo de dependencias
-*.lock
+# Cobertura y caches de testing/linting
+.coverage
+htmlcov/
+.mypy_cache/
+.ruff_cache/
 
 # Archivos generados de prueba o logs
 *.log

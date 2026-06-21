@@ -1,30 +1,37 @@
 """
 Servidor Principal FastAPI para InvoiceToSheet.
-Orquesta los endpoints de extracción de facturas PDF, exportación a Excel y
-la entrega de la interfaz gráfica estática.
+Orquesta los endpoints de extracción de facturas PDF, exportación a Excel,
+telemetría y entrega de la interfaz gráfica estática.
 """
 
 import os
-import logging
-from typing import List
-from fastapi import FastAPI, UploadFile, File, HTTPException, status
+
+from fastapi import FastAPI, File, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import StreamingResponse, FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 
-from schemas import InvoiceData, BatchExtractResponse, ExportExcelRequest
-from extractor import extract_invoice_from_pdf
 from excel_generator import generate_invoice_excel
+from extractor import extract_invoice_from_pdf
+from observability import ObservabilityAndSecurityMiddleware, metrics, setup_logger
+from schemas import BatchExtractResponse, ExportExcelRequest, InvoiceData
 
-logger = logging.getLogger("InvoiceToSheetServer")
-logging.basicConfig(level=logging.INFO)
+logger = setup_logger("InvoiceToSheetServer")
+
+# Límite máximo de tamaño por archivo: 25 MB
+MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024
 
 # Instanciación de la aplicación FastAPI
 app = FastAPI(
     title="InvoiceToSheet API",
     description="Microservicio de extracción contable inteligente y consolidación en Excel.",
-    version="1.0.0"
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc",
 )
+
+# Middleware de Seguridad y Observabilidad
+app.add_middleware(ObservabilityAndSecurityMiddleware)
 
 # Configuración de CORS
 app.add_middleware(
@@ -42,13 +49,31 @@ if not os.path.exists(STATIC_DIR):
 
 
 # =====================================================================
-# ENDPOINTS DE LA API
+# ENDPOINTS DE SALUD Y TELEMETRÍA (OBSERVABILIDAD)
 # =====================================================================
 
-@app.get("/health", tags=["Salud"])
+
+@app.get("/health", tags=["Observabilidad"], summary="Verificación de salud del microservicio")
 async def health_check():
-    """Verifica que el servicio esté activo y listo para procesar solicitudes."""
-    return {"status": "ok", "service": "InvoiceToSheet API"}
+    """Retorna el estado de disponibilidad del microservicio y métricas básicas de uptime."""
+    snapshot = metrics.get_snapshot()
+    return {
+        "status": "healthy",
+        "service": "InvoiceToSheet API",
+        "version": "1.0.0",
+        "uptime_seconds": snapshot["uptime_seconds"],
+    }
+
+
+@app.get("/api/metrics", tags=["Observabilidad"], summary="Métricas de rendimiento y uso")
+async def get_metrics():
+    """Retorna estadísticas operativas en tiempo real (invoices procesadas, tasas de éxito, llamadas)."""
+    return metrics.get_snapshot()
+
+
+# =====================================================================
+# ENDPOINTS DE EXTRACCIÓN Y EXPORTACIÓN
+# =====================================================================
 
 
 @app.post(
@@ -56,42 +81,57 @@ async def health_check():
     response_model=BatchExtractResponse,
     status_code=status.HTTP_200_OK,
     tags=["Extracción"],
-    summary="Extrae datos estructurados de uno o múltiples archivos PDF en lote"
+    summary="Extrae datos estructurados de uno o múltiples archivos PDF en lote",
 )
-async def extract_invoices(files: List[UploadFile] = File(...)):
+async def extract_invoices(files: list[UploadFile] = File(...)):
     """
     Recibe un conjunto de archivos PDF mediante multipart/form-data.
     Procesa cada archivo de forma aislada en memoria:
+    - Valida tamaño máximo permitido (25MB por archivo).
     - Si un archivo falla o está dañado, no interrumpe el procesamiento del resto.
     - Devuelve la lista consolidada de resultados con estadísticas globales.
     """
     if not files:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No se enviaron archivos para procesar."
+            status_code=status.HTTP_400_BAD_REQUEST, detail="No se enviaron archivos para procesar."
         )
 
-    results: List[InvoiceData] = []
+    results: list[InvoiceData] = []
     exitosos = 0
     advertencias = 0
     errores = 0
 
     for file in files:
         filename = file.filename or "archivo_sin_nombre.pdf"
-        
-        # Validación de extensión
+
+        # Validación de formato por extensión
         if not filename.lower().endswith(".pdf"):
-            results.append(InvoiceData(
-                nombre_archivo_origen=filename,
-                estado="error",
-                mensaje_error="Formato no soportado. Debe ser un archivo .pdf."
-            ))
+            results.append(
+                InvoiceData(
+                    nombre_archivo_origen=filename,
+                    estado="error",
+                    mensaje_error="Formato no soportado. Debe ser un archivo .pdf.",
+                )
+            )
             errores += 1
             continue
 
         try:
-            # Lectura en memoria segura
             content = await file.read()
+
+            # Validación de tamaño de archivo
+            if len(content) > MAX_FILE_SIZE_BYTES:
+                results.append(
+                    InvoiceData(
+                        nombre_archivo_origen=filename,
+                        estado="error",
+                        mensaje_error=f"El archivo excede el tamaño máximo permitido de {MAX_FILE_SIZE_BYTES // (1024 * 1024)}MB.",
+                    )
+                )
+                errores += 1
+                continue
+
+            # Extracción aislada
             invoice = extract_invoice_from_pdf(content, filename)
             results.append(invoice)
 
@@ -104,26 +144,31 @@ async def extract_invoices(files: List[UploadFile] = File(...)):
 
         except Exception as e:
             logger.error(f"Fallo no controlado procesando '{filename}': {str(e)}", exc_info=True)
-            results.append(InvoiceData(
-                nombre_archivo_origen=filename,
-                estado="error",
-                mensaje_error=f"Error inesperado al leer el documento: {str(e)}"
-            ))
+            results.append(
+                InvoiceData(
+                    nombre_archivo_origen=filename,
+                    estado="error",
+                    mensaje_error=f"Error inesperado al leer el documento: {str(e)}",
+                )
+            )
             errores += 1
+
+    # Registrar telemetría
+    metrics.record_invoices(success=exitosos, warning=advertencias, error=errores)
 
     return BatchExtractResponse(
         total_archivos=len(files),
         total_exitosos=exitosos,
         total_con_advertencia=advertencias,
         total_con_error=errores,
-        facturas=results
+        facturas=results,
     )
 
 
 @app.post(
     "/api/export-excel",
     tags=["Exportación"],
-    summary="Genera y descarga directamente un archivo Excel consolidado en memoria"
+    summary="Genera y descarga directamente un archivo Excel consolidado en memoria",
 )
 async def export_to_excel(payload: ExportExcelRequest):
     """
@@ -134,29 +179,30 @@ async def export_to_excel(payload: ExportExcelRequest):
     if not payload.facturas:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No hay facturas para generar el reporte de Excel."
+            detail="No hay facturas para generar el reporte de Excel.",
         )
 
     try:
         excel_stream = generate_invoice_excel(payload.facturas)
+        metrics.record_excel()
         filename = "facturas_consolidadas.xlsx"
-        
+
         headers = {
             "Content-Disposition": f'attachment; filename="{filename}"',
-            "Access-Control-Expose-Headers": "Content-Disposition"
+            "Access-Control-Expose-Headers": "Content-Disposition",
         }
 
         return StreamingResponse(
             excel_stream,
             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            headers=headers
+            headers=headers,
         )
     except Exception as e:
         logger.error(f"Error generando archivo Excel: {str(e)}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al generar la hoja de cálculo: {str(e)}"
-        )
+            detail=f"Error al generar la hoja de cálculo: {str(e)}",
+        ) from e
 
 
 # =====================================================================
@@ -165,16 +211,17 @@ async def export_to_excel(payload: ExportExcelRequest):
 
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
+
 @app.get("/", tags=["Frontend"])
 async def serve_index():
     """Entrega la interfaz gráfica web en un solo archivo."""
     index_path = os.path.join(STATIC_DIR, "index.html")
     if os.path.exists(index_path):
         return FileResponse(index_path)
-    return {"message": "InvoiceToSheet API lista. Coloca index.html en /static para la interfaz."}
+    return {"message": "InvoiceToSheet API lista."}
 
 
 if __name__ == "__main__":
     import uvicorn
-    # Arranque local para pruebas
+
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)

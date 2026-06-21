@@ -8,13 +8,13 @@ Implementa un pipeline de extracción híbrido:
 """
 
 import io
+import logging
 import os
 import re
-import logging
-from typing import Optional, Tuple
 from datetime import datetime
 
 import pdfplumber
+
 from schemas import InvoiceData
 
 logger = logging.getLogger("InvoiceExtractor")
@@ -23,6 +23,7 @@ logging.basicConfig(level=logging.INFO)
 # Cargar variables de entorno desde .env
 try:
     from dotenv import load_dotenv
+
     load_dotenv()
 except ImportError:
     pass
@@ -31,6 +32,7 @@ except ImportError:
 try:
     import pytesseract
     from pdf2image import convert_from_bytes
+
     OCR_AVAILABLE = True
     # Soporte para ruta personalizada de Tesseract en Windows
     tess_path = os.getenv("TESSERACT_PATH")
@@ -42,6 +44,7 @@ except ImportError:
 # Intentar importar OpenAI para fallback con LLM
 try:
     from openai import OpenAI
+
     OPENAI_AVAILABLE = True
 except ImportError:
     OPENAI_AVAILABLE = False
@@ -51,7 +54,8 @@ except ImportError:
 # UTILIDADES DE NORMALIZACIÓN
 # =====================================================================
 
-def normalize_amount(raw_val: Optional[str]) -> float:
+
+def normalize_amount(raw_val: str | None) -> float:
     """
     Normaliza representaciones numéricas monetarias complejas a float.
     Maneja:
@@ -95,14 +99,14 @@ def normalize_amount(raw_val: Optional[str]) -> float:
             # Para mayor seguridad, si hay 3 dígitos exactos al final y no hay otro separador,
             # verificamos si el valor es mayor a 1000
             pass  # Se mantiene flotante por defecto a menos que se use entero
-    
+
     try:
         return round(float(cleaned), 2)
     except (ValueError, TypeError):
         return 0.0
 
 
-def normalize_date(raw_date: Optional[str]) -> str:
+def normalize_date(raw_date: str | None) -> str:
     """
     Normaliza fechas variadas al estándar ISO (YYYY-MM-DD).
     Soporta formatos numéricos y textuales (en español e inglés).
@@ -114,25 +118,53 @@ def normalize_date(raw_date: Optional[str]) -> str:
 
     # Mapeo de meses en español e inglés
     meses = {
-        "enero": "01", "ene": "01", "january": "01", "jan": "01",
-        "febrero": "02", "feb": "02", "february": "02",
-        "marzo": "03", "mar": "03", "march": "03",
-        "abril": "04", "abr": "04", "april": "04", "apr": "04",
-        "mayo": "05", "may": "05",
-        "junio": "06", "jun": "06", "june": "06",
-        "julio": "07", "jul": "07", "july": "07",
-        "agosto": "08", "ago": "08", "august": "08", "aug": "08",
-        "septiembre": "09", "sep": "09", "setiembre": "09", "september": "09",
-        "octubre": "10", "oct": "10", "october": "10",
-        "noviembre": "11", "nov": "11", "november": "11",
-        "diciembre": "12", "dic": "12", "december": "12", "dec": "12"
+        "enero": "01",
+        "ene": "01",
+        "january": "01",
+        "jan": "01",
+        "febrero": "02",
+        "feb": "02",
+        "february": "02",
+        "marzo": "03",
+        "mar": "03",
+        "march": "03",
+        "abril": "04",
+        "abr": "04",
+        "april": "04",
+        "apr": "04",
+        "mayo": "05",
+        "may": "05",
+        "junio": "06",
+        "jun": "06",
+        "june": "06",
+        "julio": "07",
+        "jul": "07",
+        "july": "07",
+        "agosto": "08",
+        "ago": "08",
+        "august": "08",
+        "aug": "08",
+        "septiembre": "09",
+        "sep": "09",
+        "setiembre": "09",
+        "september": "09",
+        "octubre": "10",
+        "oct": "10",
+        "october": "10",
+        "noviembre": "11",
+        "nov": "11",
+        "november": "11",
+        "diciembre": "12",
+        "dic": "12",
+        "december": "12",
+        "dec": "12",
     }
 
     # Caso 1: Fechas con texto ("15 de enero de 2024", "22 de Octubre del 2023" o "15 Jan 2024")
     text_match = re.search(
         r"(\d{1,2})\s*(?:de|\/|-)?\s*([A-Za-z]{3,10})\s*(?:de|del|\/|-|,)?\s*(\d{4})",
         raw_date,
-        re.IGNORECASE
+        re.IGNORECASE,
     )
     if text_match:
         dia, mes_str, anio = text_match.groups()
@@ -141,11 +173,8 @@ def normalize_date(raw_date: Optional[str]) -> str:
             return f"{anio}-{meses[mes_key]}-{int(dia):02d}"
 
     # Caso 2: Formatos numéricos DD/MM/YYYY, DD-MM-YYYY, YYYY-MM-DD, YYYY/MM/DD
-    formatos = [
-        "%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y",
-        "%d.%m.%Y", "%Y/%m/%d", "%m/%d/%Y"
-    ]
-    
+    formatos = ["%Y-%m-%d", "%d/%m/%Y", "%d-%m-%Y", "%d.%m.%Y", "%Y/%m/%d", "%m/%d/%Y"]
+
     # Extraer segmento que parezca fecha
     candidate = re.search(r"\b(\d{1,4}[-/\.]\d{1,2}[-/\.]\d{2,4})\b", raw_date)
     date_to_test = candidate.group(1) if candidate else raw_date
@@ -166,6 +195,7 @@ def normalize_date(raw_date: Optional[str]) -> str:
 # MOTOR DE EXTRACCIÓN POR REGLAS (REGEX HEURÍSTICO)
 # =====================================================================
 
+
 class RegexExtractor:
     """
     Extractor de alta velocidad y tolerancia para facturas usando expresiones regulares.
@@ -176,36 +206,36 @@ class RegexExtractor:
     PATTERNS_INVOICE_NUMBER = [
         r"(?:factura|invoice|folio|comprobante|recibo|bill\s*no\.?)\s*(?:n[º°o#\.]?|n[uú]mero)?\s*[:#\-\s]*([A-Z0-9][A-Z0-9\-_/]{1,25})\b",
         r"\b(?:n[º°o#\.]|n[uú]mero|folio)\s*[:#\-\s]*([A-Z0-9][A-Z0-9\-_/]{1,25})\b",
-        r"\b([A-Z]{1,3}-\d{4,10})\b"
+        r"\b([A-Z]{1,3}-\d{4,10})\b",
     ]
 
     PATTERNS_DATES = [
         r"(?:fecha\s*(?:de)?\s*(?:emisi[oó]n|expedici[oó]n|factura)?|date|emisi[oó]n)\s*[:#\-\s]*([0-9]{1,2}[-/\.][0-9]{1,2}[-/\.][0-9]{2,4})",
         r"(?:fecha\s*(?:de)?\s*(?:emisi[oó]n|expedici[oó]n|factura)?|date|emisi[oó]n)\s*[:#\-\s]*([0-9]{4}[-/\.][0-9]{1,2}[-/\.][0-9]{1,2})",
-        r"(?:fecha|emisi[oó]n)\s*[:#\-\s]*([0-9]{1,2}\s*(?:de)?\s*[A-Za-z]{3,10}\s*(?:de)?\s*[0-9]{4})"
+        r"(?:fecha|emisi[oó]n)\s*[:#\-\s]*([0-9]{1,2}\s*(?:de)?\s*[A-Za-z]{3,10}\s*(?:de)?\s*[0-9]{4})",
     ]
 
     PATTERNS_TAX_ID = {
         "RFC": r"\b([A-Z&Ñ]{3,4}\s*-?\s*\d{6}\s*-?\s*[A-Z0-9]{3})\b",
         "RUT": r"\b(\d{1,2}\.?\d{3}\.?\d{3}-?[\dkK])\b",
-        "NIF_CIF": r"\b([A-HJ-NP-SUVW]\d{7}[0-9A-J]|\d{8}[A-Z]|[XYZ]\d{7}[A-Z])\b",
+        "NIF_CIF": r"\b([A-HJ-NP-SUVW]-?\d{7}[0-9A-J]|\d{8}[A-Z]|[XYZ]-?\d{7}[A-Z])\b",
         "RUC": r"\b((?:10|15|17|20)\d{9}|\d{13})\b",
-        "GENERIC": r"(?:R\.?F\.?C\.?|R\.?U\.?T\.?|N\.?I\.?F\.?|C\.?I\.?F\.?|R\.?U\.?C\.?|NIT|Tax\s*ID|VAT\s*(?:No|ID)?)\s*[:#\-\s]*([A-Z0-9\.\-]{6,20})\b"
+        "GENERIC": r"(?:R\.?F\.?C\.?|R\.?U\.?T\.?|N\.?I\.?F\.?|C\.?I\.?F\.?|R\.?U\.?C\.?|NIT|Tax\s*ID|VAT\s*(?:No|ID)?)\s*[:#\-\s]*([A-Z0-9\.\-]{6,20})\b",
     }
 
     PATTERNS_TOTAL = [
         r"(?:total\s*(?:a\s*pagar|general|factura|comprobante)?|importe\s*total|grand\s*total|monto\s*total)\s*[:=]?\s*([$€£S/\.\s]*[0-9]{1,3}(?:[.,\s][0-9]{3})*(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,2})?)",
-        r"(?:\bTOTAL\b)\s*[:=]?\s*([$€£S/\.\s]*[0-9]{1,3}(?:[.,\s][0-9]{3})*(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,2})?)"
+        r"(?:\bTOTAL\b)\s*[:=]?\s*([$€£S/\.\s]*[0-9]{1,3}(?:[.,\s][0-9]{3})*(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,2})?)",
     ]
 
     PATTERNS_SUBTOTAL = [
         r"(?:subtotal|sub-total|sub\s*total|base\s*imponible|base\s*gravada|importe\s*neto|neto)\s*[:=]?\s*([$€£S/\.\s]*[0-9]{1,3}(?:[.,\s][0-9]{3})*(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,2})?)",
-        r"(?:\bSUBTOTAL\b)\s*[:=]?\s*([$€£S/\.\s]*[0-9]{1,3}(?:[.,\s][0-9]{3})*(?:[.,][0-9]{1,2})?)"
+        r"(?:\bSUBTOTAL\b)\s*[:=]?\s*([$€£S/\.\s]*[0-9]{1,3}(?:[.,\s][0-9]{3})*(?:[.,][0-9]{1,2})?)",
     ]
 
     PATTERNS_TAXES = [
         r"(?:i\.?v\.?a\.?|impuesto(?:s)?|vat|igv|tax)\s*(?:\(?\d{1,2}%?\)?\s*)?[:=]?\s*([$€£S/\.\s]*[0-9]{1,3}(?:[.,\s][0-9]{3})*(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,2})?)",
-        r"(?:16%|21%|19%|18%)\s*[:=]?\s*([$€£S/\.\s]*[0-9]{1,3}(?:[.,\s][0-9]{3})*(?:[.,][0-9]{1,2})?)"
+        r"(?:16%|21%|19%|18%)\s*[:=]?\s*([$€£S/\.\s]*[0-9]{1,3}(?:[.,\s][0-9]{3})*(?:[.,][0-9]{1,2})?)",
     ]
 
     CURRENCY_INDICATORS = {
@@ -216,7 +246,7 @@ class RegexExtractor:
         "COP": ["COP", "PESOS COLOMBIANOS"],
         "PEN": ["PEN", "S/.", "SOLES"],
         "ARS": ["ARS", "PESOS ARGENTINOS"],
-        "GBP": ["GBP", "£", "POUNDS"]
+        "GBP": ["GBP", "£", "POUNDS"],
     }
 
     @classmethod
@@ -225,7 +255,6 @@ class RegexExtractor:
         Ejecuta la extracción de datos sobre el texto plano extraído del PDF.
         """
         lines = [line.strip() for line in text.splitlines() if line.strip()]
-        full_text = " ".join(lines)
 
         # 1. Número de Factura
         num_factura = "No identificado"
@@ -249,12 +278,17 @@ class RegexExtractor:
 
         # 3. ID Fiscal del Proveedor (Emisor)
         id_fiscal = "No identificado"
-        # Búsqueda prioritaria por tipo común
-        for tax_type, pattern in cls.PATTERNS_TAX_ID.items():
-            match = re.search(pattern, text, re.IGNORECASE)
-            if match:
-                id_fiscal = match.group(1).strip()
-                break
+        # Prioridad 1: Coincidencia con etiqueta explícita (RFC, RUT, NIF, CIF, RUC, NIT, VAT)
+        labeled_match = re.search(cls.PATTERNS_TAX_ID["GENERIC"], text, re.IGNORECASE)
+        if labeled_match:
+            id_fiscal = labeled_match.group(1).strip()
+        else:
+            # Prioridad 2: Reconocimiento estructural por formato de país
+            for tax_type in ["RFC", "NIF_CIF", "RUC", "RUT"]:
+                match = re.search(cls.PATTERNS_TAX_ID[tax_type], text, re.IGNORECASE)
+                if match:
+                    id_fiscal = match.group(1).strip()
+                    break
 
         # 4. Nombre del Proveedor (Emisor)
         nombre_proveedor = "No identificado"
@@ -262,31 +296,40 @@ class RegexExtractor:
         prov_match = re.search(
             r"(?:emisor|de|proveedor|vendedor|raz[oó]n\s*social|empresa|company)\s*[:\-]\s*([^\n\r,]{3,60})",
             text,
-            re.IGNORECASE
+            re.IGNORECASE,
         )
         if prov_match:
             candidate = prov_match.group(1).strip()
-            if not any(k in candidate.lower() for k in ["factura", "cliente", "fecha", "rfc", "nif"]):
+            if not any(
+                k in candidate.lower() for k in ["factura", "cliente", "fecha", "rfc", "nif"]
+            ):
                 nombre_proveedor = candidate
-        
+
         # Heurística b: Las primeras líneas del encabezado (antes del cliente y tax ID)
         if nombre_proveedor == "No identificado" and lines:
-            for l in lines[:5]:
+            for line_item in lines[:5]:
                 # Si parece un nombre de empresa comercial o tiene sufijo empresarial
-                if re.search(r"\b(S\.?A\.?|S\.?L\.?|S\.?A\.?S\.?|S\.?R\.?L\.?|C\.?V\.?|LLC|INC|CORP|GMBH|S\.?C\.?)\b", l, re.IGNORECASE):
-                    nombre_proveedor = l
+                if re.search(
+                    r"\b(S\.?A\.?|S\.?L\.?|S\.?A\.?S\.?|S\.?R\.?L\.?|C\.?V\.?|LLC|INC|CORP|GMBH|S\.?C\.?)\b",
+                    line_item,
+                    re.IGNORECASE,
+                ):
+                    nombre_proveedor = line_item
                     break
             # Si aún no se encuentra, tomar la primera línea legible no numérica
-            if nombre_proveedor == "No identificado" and len(lines[0]) > 3:
-                if not re.search(r"(factura|invoice|folio|\d{4})", lines[0], re.IGNORECASE):
-                    nombre_proveedor = lines[0][:60]
+            if (
+                nombre_proveedor == "No identificado"
+                and len(lines[0]) > 3
+                and not re.search(r"(factura|invoice|folio|\d{4})", lines[0], re.IGNORECASE)
+            ):
+                nombre_proveedor = lines[0][:60]
 
         # 5. Nombre del Cliente (Receptor)
         nombre_cliente = None
         cliente_match = re.search(
             r"(?:cliente|receptor|facturado\s*a|billed\s*to|para|customer|se[ñn]or(?:es)?)\s*[:\-]\s*([^\n\r,]{3,60})",
             text,
-            re.IGNORECASE
+            re.IGNORECASE,
         )
         if cliente_match:
             candidate = cliente_match.group(1).strip()
@@ -304,7 +347,7 @@ class RegexExtractor:
                     break
             if found_currency:
                 break
-        
+
         # Si se detectó un RFC mexicano y la moneda quedó en USD, probablemente sea MXN
         if not found_currency and "RFC" in text.upper():
             moneda = "MXN"
@@ -369,7 +412,7 @@ class RegexExtractor:
             nombre_archivo_origen=filename,
             estado=estado,
             mensaje_error=mensaje_error,
-            metodo_extraccion="regex"
+            metodo_extraccion="regex",
         )
 
 
@@ -377,7 +420,8 @@ class RegexExtractor:
 # FALLBACK 1: OCR CON PYTESSERACT (PARA PDFs ESCANEADOS)
 # =====================================================================
 
-def extract_text_with_ocr(pdf_bytes: bytes) -> Optional[str]:
+
+def extract_text_with_ocr(pdf_bytes: bytes) -> str | None:
     """
     Convierte las primeras páginas del PDF en imágenes y extrae texto vía pytesseract.
     """
@@ -388,7 +432,7 @@ def extract_text_with_ocr(pdf_bytes: bytes) -> Optional[str]:
     try:
         images = convert_from_bytes(pdf_bytes, first_page=1, last_page=2)
         full_ocr_text = []
-        for i, img in enumerate(images):
+        for img in images:
             text = pytesseract.image_to_string(img, lang="spa+eng")
             full_ocr_text.append(text)
         return "\n".join(full_ocr_text)
@@ -401,7 +445,8 @@ def extract_text_with_ocr(pdf_bytes: bytes) -> Optional[str]:
 # FALLBACK 2: LLM ESTRUCTURADO (OPENAI)
 # =====================================================================
 
-def extract_with_llm(raw_text: str, filename: str) -> Optional[InvoiceData]:
+
+def extract_with_llm(raw_text: str, filename: str) -> InvoiceData | None:
     """
     Fallback usando OpenAI con structured outputs para documentos complejos o desordenados.
     Se activa únicamente si OPENAI_API_KEY está configurada en el entorno.
@@ -421,10 +466,13 @@ def extract_with_llm(raw_text: str, filename: str) -> Optional[InvoiceData]:
             model=os.getenv("OPENAI_MODEL", "gpt-4o-mini"),
             messages=[
                 {"role": "system", "content": prompt},
-                {"role": "user", "content": f"Archivo: {filename}\n\nTexto de la factura:\n{raw_text[:4000]}"}
+                {
+                    "role": "user",
+                    "content": f"Archivo: {filename}\n\nTexto de la factura:\n{raw_text[:4000]}",
+                },
             ],
             response_format=InvoiceData,
-            temperature=0.0
+            temperature=0.0,
         )
         parsed: InvoiceData = response.choices[0].message.parsed
         parsed.nombre_archivo_origen = filename
@@ -439,6 +487,7 @@ def extract_with_llm(raw_text: str, filename: str) -> Optional[InvoiceData]:
 # FUNCIÓN PRINCIPAL DE EXTRACCIÓN (PIPELINE)
 # =====================================================================
 
+
 def extract_invoice_from_pdf(pdf_bytes: bytes, filename: str) -> InvoiceData:
     """
     Pipeline principal para procesar un único archivo PDF en memoria:
@@ -452,7 +501,7 @@ def extract_invoice_from_pdf(pdf_bytes: bytes, filename: str) -> InvoiceData:
         return InvoiceData(
             nombre_archivo_origen=filename,
             estado="error",
-            mensaje_error="El archivo está vacío (0 bytes)."
+            mensaje_error="El archivo está vacío (0 bytes).",
         )
 
     extracted_text = ""
@@ -472,7 +521,7 @@ def extract_invoice_from_pdf(pdf_bytes: bytes, filename: str) -> InvoiceData:
             return InvoiceData(
                 nombre_archivo_origen=filename,
                 estado="error",
-                mensaje_error="El archivo PDF está protegido con contraseña."
+                mensaje_error="El archivo PDF está protegido con contraseña.",
             )
         # Si falla la apertura estándar, intentamos verificar si es legible con OCR
         pass
@@ -490,7 +539,7 @@ def extract_invoice_from_pdf(pdf_bytes: bytes, filename: str) -> InvoiceData:
         return InvoiceData(
             nombre_archivo_origen=filename,
             estado="error",
-            mensaje_error="No se pudo extraer texto. Es posible que sea un escaneo sin OCR o un archivo dañado."
+            mensaje_error="No se pudo extraer texto. Es posible que sea un escaneo sin OCR o un archivo dañado.",
         )
 
     # Paso 3: Extracción vía Reglas y Heurísticas

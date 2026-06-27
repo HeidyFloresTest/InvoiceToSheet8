@@ -1,12 +1,45 @@
 # InvoiceToSheet 📄 ➔ 📊
 
-**InvoiceToSheet** es un MVP web modular, robusto y de alto rendimiento diseñado para la extracción automática de datos contables desde facturas en formato PDF (digitales o escaneadas) y su consolidación directa en archivos Excel (`.xlsx`) estilizados y listos para contabilidad.
+[![CI Pipeline](https://github.com/HeidyFloresTest/InvoiceToSheet/actions/workflows/ci.yml/badge.svg)](https://github.com/HeidyFloresTest/InvoiceToSheet/actions/workflows/ci.yml)
+[![Python Versions](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
+[![Coverage: 87%](https://img.shields.io/badge/coverage-87%25-brightgreen.svg)](https://github.com/HeidyFloresTest/InvoiceToSheet)
+[![Docker Ready](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
+
+**InvoiceToSheet** es un microservicio y aplicación web moderna de alta resiliencia diseñada para la extracción contable automatizada desde facturas y comprobantes en formato PDF (digitales o escaneados) y su consolidación directa en planillas Excel (`.xlsx`) profesionales con tipos de datos nativos, formato de moneda y fórmulas contables.
+
+---
+
+## 📑 Tabla de Contenidos
+
+- [Características Principales](#-características-principales)
+- [Arquitectura del Sistema](#-arquitectura-del-sistema)
+- [Inicio Rápido con Docker](#-inicio-rápido-con-docker-recomendado)
+- [Instalación Local para Desarrollo](#-instalación-local-para-desarrollo)
+- [Ejecución de Pruebas y Cobertura](#-ejecución-de-pruebas-y-cobertura)
+- [Calidad de Código y Linting](#-calidad-de-código-y-linting)
+- [Referencia de la API REST](#-referencia-de-la-api-rest)
+- [Observabilidad y Seguridad](#-observabilidad-y-seguridad)
+- [Licencia](#-licencia)
+
+---
+
+## ✨ Características Principales
+
+- **Procesamiento Híbrido Resiliente:** 
+  1. Extracción de texto digital en memoria con `pdfplumber`.
+  2. Fallback automático a OCR (`pytesseract` + `pdf2image`) para PDFs escaneados o imágenes.
+  3. Motor de reglas de alta tolerancia con Regex tolerante a formatos de España, México, Chile, Colombia, Perú y estándares internacionales.
+  4. Fallback opcional a LLM (OpenAI Structured Outputs) para formatos atípicos o no estructurados.
+- **Generación Excel Profesional:** Archivos `.xlsx` creados 100% en memoria (`io.BytesIO`) con estilos contables corporativos, auto-ancho dinámico, tipos numéricos reales y fórmulas `=SUM(...)`.
+- **Frontend Interactivo en un Solo Archivo:** Drag & Drop para lotes de 1 a 50+ archivos, barra de progreso, tarjetas KPI en tiempo real y tabla interactiva con edición en vivo antes de la descarga.
+- **Observabilidad de Nivel Producción:** Logging estructurado en JSON, trazabilidad extremo a extremo con `X-Request-ID` y endpoint de telemetría `/api/metrics`.
+- **Seguridad Rigurosa:** Cabeceras HTTP OWASP (`X-Content-Type-Options`, `X-Frame-Options`), validación de tamaño de archivo (máx. 25MB) y ejecución en contenedor con usuario sin privilegios.
 
 ---
 
 ## 🏗 Arquitectura del Sistema
-
-El sistema implementa un modelo de procesamiento desacoplado y seguro en memoria, evitando almacenar comprobantes sensibles en el disco del servidor.
 
 ```
 +-------------------------------------------------------------+
@@ -52,83 +85,118 @@ El sistema implementa un modelo de procesamiento desacoplado y seguro en memoria
 
 ---
 
-## 📁 Estructura del Proyecto
+## 🐳 Inicio Rápido con Docker (Recomendado)
 
-```plaintext
-Pruebas/
-├── .env.example            # Plantilla de variables de entorno (OpenAI, Tesseract)
-├── requirements.txt        # Dependencias fijadas del proyecto
-├── schemas.py              # Esquemas de datos Pydantic (InvoiceData, Lotes)
-├── extractor.py            # Motor de extracción híbrido (pdfplumber + OCR + Regex + LLM)
-├── excel_generator.py      # Creación y formateo profesional de hojas .xlsx
-├── main.py                 # Aplicación FastAPI y endpoints RESTful
-├── test_pipeline.py        # Suite de pruebas unitarias
-└── static/
-    └── index.html          # Interfaz de usuario moderna en un solo archivo
+La forma más rápida y reproducible de levantar el proyecto en un entorno sandbox aislado con todas las dependencias del sistema (Tesseract OCR, Poppler):
+
+```bash
+# Construir e iniciar el contenedor
+docker compose up --build
+```
+
+Abre tu navegador en:
+👉 **`http://localhost:8000`**
+
+Para detener el servicio:
+```bash
+docker compose down
 ```
 
 ---
 
-## 🚀 Instalación y Puesta en Marcha
+## 💻 Instalación Local para Desarrollo
 
-### 1. Prerrequisitos
-- Python 3.10 o superior instalado.
+### 1. Clonar el repositorio
+```bash
+git clone https://github.com/HeidyFloresTest/InvoiceToSheet.git
+cd InvoiceToSheet
+```
 
-### 2. Crear un entorno virtual (Recomendado)
-
+### 2. Crear y activar entorno virtual
 En Windows (PowerShell):
 ```powershell
 python -m venv venv
 .\venv\Scripts\Activate.ps1
 ```
 
-En Linux/macOS (Bash):
+En Linux/macOS:
 ```bash
 python3 -m venv venv
 source venv/bin/activate
 ```
 
-### 3. Instalar las dependencias
+### 3. Instalar dependencias de desarrollo y producción
 ```bash
-pip install -r requirements.txt
+pip install -r requirements-dev.txt
 ```
 
 ### 4. Configurar variables de entorno (Opcional)
-Si deseas habilitar el fallback con inteligencia artificial para facturas con formatos desestructurados:
 ```bash
 cp .env.example .env
 ```
-Edita `.env` e introduce tu clave:
-```ini
-OPENAI_API_KEY=tu_clave_de_openai_aqui
-```
+Edita `.env` para agregar tu clave de OpenAI o ruta personalizada a Tesseract si aplica.
 
-### 5. Iniciar el Servidor de Desarrollo
+### 5. Iniciar el servidor local
 ```bash
-python -m uvicorn main:app --reload --host 127.0.0.1 --port 8000
+uvicorn main:app --reload --host 127.0.0.1 --port 8000
 ```
-
-Abre tu navegador en:
-👉 **`http://127.0.0.1:8000`**
-
-Documentación interactiva de la API:
-👉 **`http://127.0.0.1:8000/docs`**
 
 ---
 
-## 🔍 Pipeline de Extracción y Resiliencia
+## 🧪 Ejecución de Pruebas y Cobertura
 
-1. **Aislamiento por Archivo:** El endpoint `/api/extract` itera de forma protegida sobre cada `UploadFile`. Si un PDF está corrupto o protegido con contraseña, registra el estado `error` para esa fila sin interrumpir el procesamiento del resto del lote.
-2. **Normalización Numérica Tolerante:** Reconoce formatos internacionales como `1,234.50` y formatos hispanoamericanos/europeos `1.234,50`, eliminando símbolos de moneda y espacios de forma segura.
-3. **Normalización de Fechas:** Convierte tanto formatos numéricos (`DD/MM/YYYY`, `YYYY-MM-DD`) como fechas en lenguaje natural (`15 de enero de 2024`) al formato estándar ISO `YYYY-MM-DD`.
-4. **Reconciliación Matemática:** Verifica si `Subtotal + Impuestos == Total`. Si uno de los tres campos no fue detectado en el texto pero los otros dos sí, calcula el faltante automáticamente.
-5. **Generación 100% en Memoria:** Ni los PDFs ni los archivos Excel se guardan en el disco duro del servidor, garantizando cumplimiento de normativas de privacidad de datos (GDPR / datos contables confidenciales).
+El proyecto cuenta con una suite completa de **43 pruebas unitarias e integrales** que cubren validación de esquemas, normalizadores, motor regex, pipeline PDF, generador de Excel y endpoints HTTP.
+
+Ejecutar pruebas con reporte de cobertura:
+```bash
+pytest
+```
+
+Para generar un reporte HTML interactivo de cobertura:
+```bash
+pytest --cov-report=html
+# Abre htmlcov/index.html en tu navegador
+```
 
 ---
 
-## 🧪 Ejecución de Pruebas Unitarias
+## 🧹 Calidad de Código y Linting
 
-Para validar el extractor y la generación de Excel:
+El proyecto aplica estándares estrictos de estilo mediante [Ruff](https://github.com/astral-sh/ruff) y tipado estático con [Mypy](http://mypy-lang.org/):
+
 ```bash
-python -m unittest test_pipeline.py
+# Análisis estático y verificación de reglas
+ruff check .
+
+# Formateo automático de código
+ruff format .
+
+# Verificación de tipos estáticos
+mypy .
 ```
+
+---
+
+## 📡 Referencia de la API REST
+
+| Método | Endpoint | Descripción |
+| :--- | :--- | :--- |
+| `GET` | `/health` | Verificación de disponibilidad y tiempo activo del servicio. |
+| `GET` | `/api/metrics` | Telemetría en vivo: facturas procesadas, tasas de éxito y tiempos. |
+| `POST` | `/api/extract` | Procesamiento por lotes de comprobantes PDF (`multipart/form-data`). |
+| `POST` | `/api/export-excel` | Generación en memoria y descarga del archivo `.xlsx` consolidado. |
+| `GET` | `/docs` | Documentación interactiva Swagger / OpenAPI. |
+
+---
+
+## 🛡 Observabilidad y Seguridad
+
+- **Trazabilidad:** Cada petición genera un identificador único `X-Request-ID` que se propaga a los logs estructurados JSON para auditoría.
+- **Resiliencia ante Fallos:** Si un archivo dentro de un lote está dañado o protegido con contraseña, el sistema aísla el error y procesa el resto sin interrupciones.
+- **Protección de Datos:** Ningún comprobante ni archivo Excel se almacena en el disco duro del servidor; todo el procesamiento ocurre estrictamente en memoria (`io.BytesIO`).
+
+---
+
+## 📄 Licencia
+
+Este proyecto está distribuido bajo la licencia [MIT](LICENSE).

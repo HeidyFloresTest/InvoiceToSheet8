@@ -3,70 +3,56 @@ Modelos de datos y esquemas Pydantic para InvoiceToSheet.
 Garantiza validación estricta de tipos tanto en la extracción como en la exportación a Excel.
 """
 
-from typing import List, Optional, Literal
-from pydantic import BaseModel, Field
 import uuid
+from typing import Literal
+
+from pydantic import BaseModel, Field
 
 
 class InvoiceData(BaseModel):
     """
     Representa la información estructurada extraída de una factura individual.
     """
+
     id: str = Field(
         default_factory=lambda: str(uuid.uuid4()),
-        description="Identificador único para manipulación en el frontend"
+        description="Identificador único para manipulación en el frontend",
     )
     numero_factura: str = Field(
-        default="No identificado",
-        description="Número de folio, comprobante o factura"
+        default="No identificado", description="Número de folio, comprobante o factura"
     )
     fecha_emision: str = Field(
         default="No identificada",
-        description="Fecha de emisión normalizada (YYYY-MM-DD o texto detectado)"
+        description="Fecha de emisión normalizada (YYYY-MM-DD o texto detectado)",
     )
     nombre_proveedor: str = Field(
-        default="No identificado",
-        description="Razón social o nombre comercial del emisor"
+        default="No identificado", description="Razón social o nombre comercial del emisor"
     )
     id_fiscal_proveedor: str = Field(
         default="No identificado",
-        description="Identificador tributario (RFC, RUT, NIF, CIF, RUC, etc.)"
+        description="Identificador tributario (RFC, RUT, NIF, CIF, RUC, etc.)",
     )
-    nombre_cliente: Optional[str] = Field(
-        default=None,
-        description="Razón social o nombre del receptor de la factura"
+    nombre_cliente: str | None = Field(
+        default=None, description="Razón social o nombre del receptor de la factura"
     )
-    subtotal: float = Field(
-        default=0.0,
-        description="Base imponible o subtotal antes de impuestos"
-    )
+    subtotal: float = Field(default=0.0, description="Base imponible o subtotal antes de impuestos")
     impuestos: float = Field(
         default=0.0,
-        description="Monto acumulado de impuestos aplicados (IVA, VAT, retenciones, etc.)"
+        description="Monto acumulado de impuestos aplicados (IVA, VAT, retenciones, etc.)",
     )
-    total: float = Field(
-        default=0.0,
-        description="Importe total a pagar de la factura"
-    )
+    total: float = Field(default=0.0, description="Importe total a pagar de la factura")
     moneda: str = Field(
-        default="USD",
-        description="Código de moneda (USD, EUR, MXN, CLP, COP, PEN, etc.)"
+        default="USD", description="Código de moneda (USD, EUR, MXN, CLP, COP, PEN, etc.)"
     )
-    nombre_archivo_origen: str = Field(
-        ...,
-        description="Nombre del archivo PDF procesado"
-    )
+    nombre_archivo_origen: str = Field(..., description="Nombre del archivo PDF procesado")
     estado: Literal["success", "warning", "error"] = Field(
-        default="success",
-        description="Estado de procesamiento del documento"
+        default="success", description="Estado de procesamiento del documento"
     )
-    mensaje_error: Optional[str] = Field(
-        default=None,
-        description="Mensaje descriptivo en caso de error o advertencia"
+    mensaje_error: str | None = Field(
+        default=None, description="Mensaje descriptivo en caso de error o advertencia"
     )
     metodo_extraccion: str = Field(
-        default="regex",
-        description="Método que extrajo la información (regex, ocr, llm, manual)"
+        default="regex", description="Método que extrajo la información (regex, ocr, llm, manual)"
     )
 
 
@@ -74,11 +60,12 @@ class BatchExtractResponse(BaseModel):
     """
     Respuesta consolidada del procesamiento por lotes de facturas.
     """
+
     total_archivos: int
     total_exitosos: int
     total_con_advertencia: int
     total_con_error: int
-    facturas: List[InvoiceData]
+    facturas: list[InvoiceData]
 
 
 class ExportExcelRequest(BaseModel):
@@ -86,4 +73,5 @@ class ExportExcelRequest(BaseModel):
     Payload recibido por el endpoint de exportación a Excel.
     Permite enviar las facturas revisadas o editadas por el usuario en el frontend.
     """
-    facturas: List[InvoiceData]
+
+    facturas: list[InvoiceData]

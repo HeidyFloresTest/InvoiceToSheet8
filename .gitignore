@@ -30,6 +30,7 @@ $RECYCLE.BIN/
 
 # Cobertura y caches de testing/linting
 .coverage
+coverage.xml
 htmlcov/
 .mypy_cache/
 .ruff_cache/

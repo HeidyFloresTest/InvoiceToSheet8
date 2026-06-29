@@ -9,15 +9,15 @@ Utiliza pandas y openpyxl para crear hojas de cálculo con calidad contable prof
 """
 
 import io
-from typing import List
+
 from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
 
 from schemas import InvoiceData
 
 
-def generate_invoice_excel(invoices: List[InvoiceData]) -> io.BytesIO:
+def generate_invoice_excel(invoices: list[InvoiceData]) -> io.BytesIO:
     """
     Toma una lista de facturas extraídas (InvoiceData) y produce un buffer en memoria
     con un archivo Excel (.xlsx) diseñado profesionalmente.
@@ -33,9 +33,11 @@ def generate_invoice_excel(invoices: List[InvoiceData]) -> io.BytesIO:
     # PALETA DE ESTILOS Y COLORES
     # -------------------------------------------------------------
     FONT_FAMILY = "Segoe UI"
-    
+
     # Encabezado principal
-    header_fill = PatternFill(start_color="1E293B", end_color="1E293B", fill_type="solid")  # Slate oscuro
+    header_fill = PatternFill(
+        start_color="1E293B", end_color="1E293B", fill_type="solid"
+    )  # Slate oscuro
     header_font = Font(name=FONT_FAMILY, size=11, bold=True, color="FFFFFF")
     header_alignment = Alignment(horizontal="center", vertical="center", wrap_text=True)
 
@@ -52,15 +54,12 @@ def generate_invoice_excel(invoices: List[InvoiceData]) -> io.BytesIO:
     # Bordes sutiles
     thin_border_side = Side(border_style="thin", color="CBD5E1")
     data_border = Border(
-        left=thin_border_side,
-        right=thin_border_side,
-        top=thin_border_side,
-        bottom=thin_border_side
+        left=thin_border_side, right=thin_border_side, top=thin_border_side, bottom=thin_border_side
     )
-    
+
     total_border = Border(
         top=Side(border_style="thin", color="0F172A"),
-        bottom=Side(border_style="double", color="0F172A")
+        bottom=Side(border_style="double", color="0F172A"),
     )
 
     # Fondos alternos (Zebra)
@@ -106,7 +105,11 @@ def generate_invoice_excel(invoices: List[InvoiceData]) -> io.BytesIO:
         fill = row_even_fill if current_row % 2 == 0 else row_odd_fill
 
         # Determinar etiqueta amigable del estado
-        estado_label = "Válido" if inv.estado == "success" else ("Revisar" if inv.estado == "warning" else "Error")
+        estado_label = (
+            "Válido"
+            if inv.estado == "success"
+            else ("Revisar" if inv.estado == "warning" else "Error")
+        )
 
         row_values = [
             (idx, regular_alignment_center, "@"),
@@ -121,7 +124,7 @@ def generate_invoice_excel(invoices: List[InvoiceData]) -> io.BytesIO:
             (float(inv.impuestos), regular_alignment_right, "#,##0.00"),
             (float(inv.total), regular_alignment_right, "#,##0.00"),
             (inv.metodo_extraccion.upper(), regular_alignment_center, "@"),
-            (inv.nombre_archivo_origen, regular_alignment_left, "@")
+            (inv.nombre_archivo_origen, regular_alignment_left, "@"),
         ]
 
         for col_idx, (val, alignment, num_format) in enumerate(row_values, start=1):

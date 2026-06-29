@@ -7,13 +7,13 @@ Script de pruebas unitarias y de integración para validar la lógica de Invoice
 
 import io
 import unittest
-from schemas import InvoiceData
-from extractor import normalize_amount, normalize_date, RegexExtractor
+
 from excel_generator import generate_invoice_excel
+from extractor import RegexExtractor, normalize_amount, normalize_date
+from schemas import InvoiceData
 
 
 class TestInvoiceToSheetPipeline(unittest.TestCase):
-
     def test_normalize_amount(self):
         """Verifica la normalización de distintos estándares numéricos."""
         self.assertEqual(normalize_amount("1,234.50"), 1234.50)
@@ -77,7 +77,7 @@ class TestInvoiceToSheetPipeline(unittest.TestCase):
                 total=605.00,
                 moneda="EUR",
                 nombre_archivo_origen="alfa_001.pdf",
-                estado="success"
+                estado="success",
             ),
             InvoiceData(
                 numero_factura="FAC-002",
@@ -90,8 +90,8 @@ class TestInvoiceToSheetPipeline(unittest.TestCase):
                 total=1200.00,
                 moneda="USD",
                 nombre_archivo_origen="gamma_002.pdf",
-                estado="warning"
-            )
+                estado="warning",
+            ),
         ]
 
         excel_stream = generate_invoice_excel(invoices)

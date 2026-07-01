@@ -6,6 +6,7 @@ telemetría y entrega de la interfaz gráfica estática.
 
 import os
 
+import sentry_sdk
 from fastapi import FastAPI, File, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
@@ -17,6 +18,15 @@ from observability import ObservabilityAndSecurityMiddleware, metrics, setup_log
 from schemas import BatchExtractResponse, ExportExcelRequest, InvoiceData
 
 logger = setup_logger("InvoiceToSheetServer")
+
+# Inicialización condicional de Sentry para error tracking en producción
+sentry_dsn = os.getenv("SENTRY_DSN")
+if sentry_dsn:
+    sentry_sdk.init(
+        dsn=sentry_dsn,
+        traces_sample_rate=0.1,
+        send_default_pii=False,
+    )
 
 # Límite máximo de tamaño por archivo: 25 MB
 MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024

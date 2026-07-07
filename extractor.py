@@ -12,6 +12,7 @@ import logging
 import os
 import re
 from datetime import datetime
+from typing import Literal
 
 import pdfplumber
 
@@ -393,7 +394,7 @@ class RegexExtractor:
             subtotal_val = round(total_val - impuestos_val, 2)
 
         # Determinar estado
-        estado = "success"
+        estado: Literal["success", "warning", "error"] = "success"
         mensaje_error = None
         if total_val == 0.0 or num_factura == "No identificado":
             estado = "warning"
@@ -474,7 +475,9 @@ def extract_with_llm(raw_text: str, filename: str) -> InvoiceData | None:
             response_format=InvoiceData,
             temperature=0.0,
         )
-        parsed: InvoiceData = response.choices[0].message.parsed
+        parsed = response.choices[0].message.parsed
+        if parsed is None:
+            return None
         parsed.nombre_archivo_origen = filename
         parsed.metodo_extraccion = "llm"
         return parsed

@@ -11,9 +11,55 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint-and-test:
+  lint:
+    name: Code Quality (Ruff Linter & Formatter)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Linting Tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install ruff
+
+      - name: Run Ruff Lint Check
+        run: ruff check .
+
+      - name: Run Ruff Format Check
+        run: ruff format --check .
+
+  typecheck:
+    name: Static Type Analysis (Mypy)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install Type Checking Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      - name: Run Mypy Typecheck
+        run: mypy .
+
+  test:
     name: Test on Python ${{ matrix.python-version }} (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    needs: [lint, typecheck]
     strategy:
       fail-fast: false
       matrix:
@@ -30,7 +76,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
           cache: "pip"
 
-      - name: Install System Dependencies (OCR & Poppler)
+      - name: Install System Dependencies (Tesseract OCR & Poppler)
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
@@ -39,27 +85,40 @@ jobs:
             tesseract-ocr-eng \
             poppler-utils
 
-      - name: Upgrade pip and install dependencies
+      - name: Install Dependencies from Lockfile
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
 
-      - name: Lint with Ruff
-        run: |
-          ruff check .
-
-      - name: Check Code Formatting with Ruff
-        run: |
-          ruff format --check .
-
-      - name: Run Test Suite with Pytest & Coverage
+      - name: Run Pytest with Coverage
         run: |
           pytest --cov=. --cov-report=term-missing --cov-report=xml
 
-      - name: Upload Coverage to Artifacts
+      - name: Upload Test Coverage Artifact
         if: matrix.python-version == '3.12'
         uses: actions/upload-artifact@v4
         with:
           name: coverage-report
           path: coverage.xml
           retention-days: 7
+
+  security-audit:
+    name: Dependency Security Audit (pip-audit)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Install pip-audit
+        run: |
+          python -m pip install --upgrade pip
+          pip install pip-audit
+
+      - name: Scan Dependencies for Known CVE Vulnerabilities
+        run: pip-audit -r requirements.txt

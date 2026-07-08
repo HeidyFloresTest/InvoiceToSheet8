@@ -95,11 +95,12 @@ def normalize_amount(raw_val: str | None) -> float:
     elif "." in cleaned:
         # Solo tiene puntos
         parts = cleaned.split(".")
-        if len(parts) == 2 and len(parts[1]) == 3 and len(parts[0]) <= 3:
-            # Podría ser miles sin decimales: 125.000 -> 125000 (común en CLP, COP, etc.)
-            # Para mayor seguridad, si hay 3 dígitos exactos al final y no hay otro separador,
-            # verificamos si el valor es mayor a 1000
-            pass  # Se mantiene flotante por defecto a menos que se use entero
+        if len(parts) > 2:
+            # Múltiples separadores de miles (ej. 1.500.000)
+            cleaned = cleaned.replace(".", "")
+        elif len(parts) == 2 and len(parts[1]) == 3 and len(parts[0]) >= 1:
+            # Formatos monetarios sin decimales (común en CLP, COP, PYG: ej. 150.000 -> 150000)
+            cleaned = cleaned.replace(".", "")
 
     try:
         return round(float(cleaned), 2)

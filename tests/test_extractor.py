@@ -26,6 +26,9 @@ class TestNormalizers:
             (None, 0.00),
             ("abc", 0.00),
             ("10,000", 10000.00),
+            ("150.000", 150000.00),
+            ("1.500.000", 1500000.00),
+            ("CLP $ 850.000", 850000.00),
         ],
     )
     def test_normalize_amount(self, raw_input, expected):

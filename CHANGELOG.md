@@ -1,0 +1,32 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.1.0] - 2026-10-26
+
+### Added
+- **Mock Integration Tests:** Added `tests/test_extractor_ocr.py` and `tests/test_extractor_llm.py` testing OCR (`pytesseract`/`pdf2image`) and LLM (`OpenAI`) fallback branches with mock fixtures, raising test coverage to 90.6%.
+- **Production Error Tracking:** Integrated `sentry-sdk[fastapi]` for centralized exception monitoring and telemetry in `main.py`, guarded by `SENTRY_DSN` environment flag.
+- **Dependency Tooling & Lockfile:** Added pinned `requirements.lock.txt` and `.github/dependabot.yml` for automated weekly security updates.
+- **CI Enhancements:** Added dedicated `typecheck` (Mypy) and `security-audit` (`pip-audit`) stages to `.github/workflows/ci.yml`.
+- **Currency & Normalizer Support:** Added support for Chilean CLP thousand separator parsing in `extractor.py` and corresponding unit test.
+- **Community Standards:** Added `CONTRIBUTING.md` and `CHANGELOG.md`.
+
+### Changed
+- Refactored `extractor.py` to prioritize labeled tax IDs (`GENERIC`) over heuristic pattern matching.
+- Updated `README.md` with CI badge, coverage metric, Docker setup, and branch protection guides.
+
+## [1.0.0] - 2026-10-26
+
+### Added
+- Initial release of **InvoiceToSheet** MVP.
+- Core PDF text extraction pipeline using `pdfplumber` with OCR fallback.
+- Rule-based regex extraction engine for invoice number, dates, providers, tax IDs (RFC, RUT, NIF, RUC), and amounts.
+- In-memory Excel (`.xlsx`) generation using `openpyxl` with corporate styling and dynamic `=SUM(...)` formulas.
+- FastAPI REST service with endpoints: `GET /health`, `POST /api/extract`, `POST /api/export-excel`.
+- Single-file modern frontend with Tailwind CSS, Drag & Drop multi-file queue, and editable preview table.
+- Multi-stage `Dockerfile`, `docker-compose.yml`, and `.devcontainer` configuration.
+- MIT License.

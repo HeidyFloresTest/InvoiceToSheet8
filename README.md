@@ -1,10 +1,10 @@
 # InvoiceToSheet 📄 ➔ 📊
 
-[![CI Pipeline](https://github.com/HeidyFloresTest/InvoiceToSheet/actions/workflows/ci.yml/badge.svg)](https://github.com/HeidyFloresTest/InvoiceToSheet/actions/workflows/ci.yml)
+[![CI Pipeline](https://github.com/HeidyFloresTest/InvoiceToSheet1/actions/workflows/ci.yml/badge.svg)](https://github.com/HeidyFloresTest/InvoiceToSheet1/actions/workflows/ci.yml)
 [![Python Versions](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![Coverage: 87%](https://img.shields.io/badge/coverage-87%25-brightgreen.svg)](https://github.com/HeidyFloresTest/InvoiceToSheet)
+[![Coverage: 91%](https://img.shields.io/badge/coverage-91%25-brightgreen.svg)](https://github.com/HeidyFloresTest/InvoiceToSheet1)
 [![Docker Ready](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
 
 **InvoiceToSheet** es un microservicio y aplicación web moderna de alta resiliencia diseñada para la extracción contable automatizada desde facturas y comprobantes en formato PDF (digitales o escaneados) y su consolidación directa en planillas Excel (`.xlsx`) profesionales con tipos de datos nativos, formato de moneda y fórmulas contables.
@@ -191,9 +191,22 @@ mypy .
 
 ## 🛡 Observabilidad y Seguridad
 
+- **Monitoreo de Excepciones en Producción (Sentry):** Integración nativa con `sentry-sdk[fastapi]`. Configura la variable `SENTRY_DSN` en tu entorno o `.env` para captura automática de trazas de error en tiempo real (si no está definida, opera como *no-op* sin interrumpir el servicio).
 - **Trazabilidad:** Cada petición genera un identificador único `X-Request-ID` que se propaga a los logs estructurados JSON para auditoría.
 - **Resiliencia ante Fallos:** Si un archivo dentro de un lote está dañado o protegido con contraseña, el sistema aísla el error y procesa el resto sin interrupciones.
 - **Protección de Datos:** Ningún comprobante ni archivo Excel se almacena en el disco duro del servidor; todo el procesamiento ocurre estrictamente en memoria (`io.BytesIO`).
+
+---
+
+## 🔒 Reglas de Protección de Rama (`main`)
+
+El pipeline de CI en [`.github/workflows/ci.yml`](.github/workflows/ci.yml) define las verificaciones requeridas obligatorias (*required status checks*) para la rama `main`:
+1. `Code Quality (Ruff Linter & Formatter)` (`lint`)
+2. `Static Type Analysis (Mypy)` (`typecheck`)
+3. `Test on Python 3.12 (ubuntu-latest)` (`test`)
+4. `Dependency Security Audit (pip-audit)` (`security-audit`)
+
+Para más detalles sobre el proceso de contribución y versiones, consulta [CONTRIBUTING.md](CONTRIBUTING.md) y [CHANGELOG.md](CHANGELOG.md).
 
 ---
 

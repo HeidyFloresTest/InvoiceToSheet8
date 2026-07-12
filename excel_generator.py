@@ -13,6 +13,7 @@ import io
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.worksheet import Worksheet
 
 from schemas import InvoiceData
 
@@ -24,6 +25,7 @@ def generate_invoice_excel(invoices: list[InvoiceData]) -> io.BytesIO:
     """
     wb = Workbook()
     ws = wb.active
+    assert isinstance(ws, Worksheet)
     ws.title = "Consolidado de Facturas"
 
     # Asegurar visualización de líneas de cuadrícula
@@ -111,7 +113,7 @@ def generate_invoice_excel(invoices: list[InvoiceData]) -> io.BytesIO:
             else ("Revisar" if inv.estado == "warning" else "Error")
         )
 
-        row_values = [
+        row_values: list[tuple[str | int | float, Alignment, str]] = [
             (idx, regular_alignment_center, "@"),
             (estado_label, regular_alignment_center, "@"),
             (inv.numero_factura, regular_alignment_center, "@"),

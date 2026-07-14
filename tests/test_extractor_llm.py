@@ -87,3 +87,36 @@ def test_extract_with_llm_returns_none_when_no_api_key():
     with patch("os.getenv", return_value=None):
         result = extract_with_llm("Texto de prueba", "test.pdf")
         assert result is None
+
+
+def test_llm_fallback_sets_metodo_extraccion_field():
+    """Verifica explícitamente que la extracción vía LLM establezca metodo_extraccion='llm'."""
+    mock_client = MagicMock()
+    mock_invoice = InvoiceData(
+        numero_factura="INV-LLM-100",
+        fecha_emision="2024-05-10",
+        nombre_proveedor="Tech Solutions LLC",
+        id_fiscal_proveedor="US99887766",
+        subtotal=100.0,
+        impuestos=16.0,
+        total=116.0,
+        moneda="USD",
+        nombre_archivo_origen="scanned_receipt.pdf",
+        estado="success",
+        metodo_extraccion="llm",
+    )
+    mock_choice = MagicMock()
+    mock_choice.message.parsed = mock_invoice
+    mock_completion = MagicMock()
+    mock_completion.choices = [mock_choice]
+    mock_client.beta.chat.completions.parse.return_value = mock_completion
+
+    with (
+        patch("os.getenv", side_effect=lambda k, default=None: "sk-test" if k == "OPENAI_API_KEY" else default),
+        patch("extractor.OPENAI_AVAILABLE", True),
+        patch("extractor.OpenAI", return_value=mock_client),
+    ):
+        result = extract_with_llm("Receipt without clear regex patterns", "scanned_receipt.pdf")
+        assert result is not None
+        assert result.metodo_extraccion == "llm"
+        assert result.estado == "success"

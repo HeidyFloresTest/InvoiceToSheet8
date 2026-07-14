@@ -68,3 +68,55 @@ def test_export_excel_empty_payload(client):
     response = client.post("/api/export-excel", json={"facturas": []})
     assert response.status_code == 400
     assert "no hay facturas" in response.json()["detail"].lower()
+
+
+def test_cors_preflight_and_allowed_origin(client):
+    """Verifica que un origen permitido reciba cabeceras CORS de acceso."""
+    headers = {
+        "Origin": "http://localhost:3000",
+        "Access-Control-Request-Method": "POST",
+    }
+    response = client.options("/api/extract", headers=headers)
+    assert response.status_code == 200
+    assert response.headers.get("access-control-allow-origin") == "http://localhost:3000"
+
+
+def test_cors_disallowed_origin(client):
+    """Verifica que orígenes no autorizados no reciban cabecera access-control-allow-origin."""
+    headers = {
+        "Origin": "http://malicious-site.example.com",
+        "Access-Control-Request-Method": "POST",
+    }
+    response = client.options("/api/extract", headers=headers)
+    assert response.headers.get("access-control-allow-origin") != "http://malicious-site.example.com"
+
+
+def test_extract_invoices_corrupted_pdf(client):
+    """Verifica que un archivo PDF corrupto sea manejado grácilmente retornando estado error."""
+    corrupted_content = b"%PDF-1.4 CORRUPTED DATA NOT VALID PDF CONTENT \x00\xff\xee"
+    files = [("files", ("factura_corrupta.pdf", corrupted_content, "application/pdf"))]
+    response = client.post("/api/extract", files=files)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_archivos"] == 1
+    assert data["total_con_error"] == 1
+    factura = data["facturas"][0]
+    assert factura["estado"] == "error"
+    assert factura["nombre_archivo_origen"] == "factura_corrupta.pdf"
+    assert "error" in factura["mensaje_error"].lower() or "dañado" in factura["mensaje_error"].lower()
+
+
+def test_extract_invoices_oversized_file(client):
+    """Verifica que un archivo que excede los 25MB sea rechazado grácilmente por tamaño."""
+    oversized_size = 25 * 1024 * 1024 + 1024  # 25MB + 1KB
+    # Usar un buffer simulado sin consumir memoria innecesaria
+    oversized_content = b"0" * oversized_size
+    files = [("files", ("factura_gigante.pdf", oversized_content, "application/pdf"))]
+    response = client.post("/api/extract", files=files)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_archivos"] == 1
+    assert data["total_con_error"] == 1
+    factura = data["facturas"][0]
+    assert factura["estado"] == "error"
+    assert "excede el tamaño máximo" in factura["mensaje_error"]

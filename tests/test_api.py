@@ -120,3 +120,32 @@ def test_extract_invoices_oversized_file(client):
     factura = data["facturas"][0]
     assert factura["estado"] == "error"
     assert "excede el tamaño máximo" in factura["mensaje_error"]
+
+
+def test_get_invoice_history_and_by_id(client, sample_pdf_bytes):
+    """Verifica la consulta del historial paginado y búsqueda por ID en la base de datos."""
+    # Extraer factura para poblar la base de datos
+    files = [("files", ("factura_para_historial.pdf", sample_pdf_bytes, "application/pdf"))]
+    res_extract = client.post("/api/extract", files=files)
+    assert res_extract.status_code == 200
+
+    # Consultar historial
+    res_history = client.get("/api/invoices/history?skip=0&limit=10")
+    assert res_history.status_code == 200
+    history_data = res_history.json()
+    assert "total" in history_data
+    assert "invoices" in history_data
+    assert history_data["total"] >= 1
+
+    first_item = history_data["invoices"][0]
+    inv_id = first_item["id"]
+
+    # Consultar por ID
+    res_single = client.get(f"/api/invoices/{inv_id}")
+    assert res_single.status_code == 200
+    assert res_single.json()["id"] == inv_id
+
+    # Consultar ID inexistente -> 404
+    res_404 = client.get("/api/invoices/99999999")
+    assert res_404.status_code == 404
+

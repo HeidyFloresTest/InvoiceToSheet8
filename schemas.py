@@ -75,3 +75,33 @@ class ExportExcelRequest(BaseModel):
     """
 
     facturas: list[InvoiceData]
+
+
+class InvoiceHistoryItem(BaseModel):
+    """Representa una factura histórica almacenada en la base de datos."""
+
+    id: int
+    numero_factura: str | None = None
+    fecha_emision: str | None = None
+    nombre_proveedor: str | None = None
+    id_fiscal_proveedor: str | None = None
+    subtotal: float | None = 0.0
+    impuestos: float | None = 0.0
+    total: float | None = 0.0
+    moneda: str = "USD"
+    estado: str = "success"
+    metodo_extraccion: str = "regex"
+    nombre_archivo_origen: str | None = None
+    mensaje_error: str | None = None
+
+    class Config:
+        from_attributes = True
+
+
+class InvoiceHistoryResponse(BaseModel):
+    """Respuesta con el listado paginado del historial de facturas."""
+
+    total: int
+    skip: int
+    limit: int
+    invoices: list[InvoiceHistoryItem]

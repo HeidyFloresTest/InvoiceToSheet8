@@ -15,7 +15,16 @@ from fastapi.staticfiles import StaticFiles
 from excel_generator import generate_invoice_excel
 from extractor import extract_invoice_from_pdf
 from observability import ObservabilityAndSecurityMiddleware, metrics, setup_logger
-from schemas import BatchExtractResponse, ExportExcelRequest, InvoiceData
+from schemas import (
+    BatchExtractResponse,
+    ExportExcelRequest,
+    InvoiceData,
+    InvoiceHistoryItem,
+    InvoiceHistoryResponse,
+)
+from database import get_db, init_db, InvoiceRepository
+from fastapi import Depends
+from sqlalchemy.orm import Session
 
 logger = setup_logger("InvoiceToSheetServer")
 
@@ -95,6 +104,10 @@ async def get_metrics():
 # =====================================================================
 
 
+# Inicialización del esquema de base de datos relacional
+init_db()
+
+
 @app.post(
     "/api/extract",
     response_model=BatchExtractResponse,
@@ -102,12 +115,16 @@ async def get_metrics():
     tags=["Extracción"],
     summary="Extrae datos estructurados de uno o múltiples archivos PDF en lote",
 )
-async def extract_invoices(files: list[UploadFile] = File(...)):
+async def extract_invoices(
+    files: list[UploadFile] = File(...),
+    db: Session = Depends(get_db),
+):
     """
     Recibe un conjunto de archivos PDF mediante multipart/form-data.
     Procesa cada archivo de forma aislada en memoria:
     - Valida tamaño máximo permitido (25MB por archivo).
     - Si un archivo falla o está dañado, no interrumpe el procesamiento del resto.
+    - Persiste el histórico de facturas en base de datos relacional (ORM SQLite).
     - Devuelve la lista consolidada de resultados con estadísticas globales.
     """
     if not files:
@@ -175,6 +192,13 @@ async def extract_invoices(files: list[UploadFile] = File(...)):
     # Registrar telemetría
     metrics.record_invoices(success=exitosos, warning=advertencias, error=errores)
 
+    # Persistencia relacional en base de datos mediante capa ORM
+    try:
+        repo = InvoiceRepository(db)
+        repo.save_batch(results)
+    except Exception as e:
+        logger.error(f"Error al persistir lote en base de datos: {e}")
+
     return BatchExtractResponse(
         total_archivos=len(files),
         total_exitosos=exitosos,
@@ -182,6 +206,51 @@ async def extract_invoices(files: list[UploadFile] = File(...)):
         total_con_error=errores,
         facturas=results,
     )
+
+
+@app.get(
+    "/api/invoices/history",
+    response_model=InvoiceHistoryResponse,
+    tags=["Historial"],
+    summary="Obtiene el historial paginado de facturas procesadas",
+)
+async def get_invoice_history(
+    skip: int = 0,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+):
+    """Retorna las facturas registradas en la base de datos con paginación."""
+    repo = InvoiceRepository(db)
+    items = repo.list_invoices(skip=skip, limit=limit)
+    total = repo.count_total()
+    return InvoiceHistoryResponse(
+        total=total,
+        skip=skip,
+        limit=limit,
+        invoices=[InvoiceHistoryItem.model_validate(item) for item in items],
+    )
+
+
+@app.get(
+    "/api/invoices/{invoice_id}",
+    response_model=InvoiceHistoryItem,
+    tags=["Historial"],
+    summary="Obtiene el detalle de una factura específica del historial",
+)
+async def get_invoice_by_id(
+    invoice_id: int,
+    db: Session = Depends(get_db),
+):
+    """Busca y retorna una factura específica por su ID primario."""
+    repo = InvoiceRepository(db)
+    item = repo.get_by_id(invoice_id)
+    if not item:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Factura con ID {invoice_id} no encontrada.",
+        )
+    return InvoiceHistoryItem.model_validate(item)
+
 
 
 @app.post(

@@ -38,3 +38,6 @@ htmlcov/
 # Archivos generados de prueba o logs
 *.log
 facturas_consolidadas*.xlsx
+*.db
+*.sqlite3
+

@@ -29,6 +29,8 @@ class TestNormalizers:
             ("150.000", 150000.00),
             ("1.500.000", 1500000.00),
             ("CLP $ 850.000", 850000.00),
+            ("R$ 4.500,75", 4500.75),
+            ("£ 1,250.00", 1250.00),
         ],
     )
     def test_normalize_amount(self, raw_input, expected):
@@ -92,6 +94,24 @@ class TestRegexExtractor:
         assert result.impuestos == 210.00
         assert result.total == 1210.00
         assert result.moneda == "EUR"
+        assert result.estado == "success"
+
+    def test_brazilian_invoice_extraction(self):
+        text = """
+        SOLUCOES BRASIL LTDA
+        CNPJ: 12.345.678/0001-90
+        FACTURA N°: NF-2024-55
+        Data de Emissao: 18/07/2024
+        Subtotal: R$ 3.000,00
+        Impostos: R$ 570,00
+        TOTAL A PAGAR: R$ 3.570,00 BRL
+        """
+        result = RegexExtractor.extract(text, "brasil.pdf")
+        assert result.numero_factura == "NF-2024-55"
+        assert result.subtotal == 3000.00
+        assert result.impuestos == 570.00
+        assert result.total == 3570.00
+        assert result.moneda == "BRL"
         assert result.estado == "success"
 
     def test_reconciliation_calculates_missing_tax(self):

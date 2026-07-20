@@ -6,8 +6,8 @@ Utiliza SQLAlchemy con SQLite para registrar el histórico de facturas procesada
 from __future__ import annotations
 
 import os
+from collections.abc import Generator
 from datetime import datetime
-from typing import Generator
 
 from sqlalchemy import Column, DateTime, Float, Integer, String, create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker

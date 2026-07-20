@@ -7,11 +7,13 @@ telemetría y entrega de la interfaz gráfica estática.
 import os
 
 import sentry_sdk
-from fastapi import FastAPI, File, HTTPException, UploadFile, status
+from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from sqlalchemy.orm import Session
 
+from database import InvoiceRepository, get_db, init_db
 from excel_generator import generate_invoice_excel
 from extractor import extract_invoice_from_pdf
 from observability import ObservabilityAndSecurityMiddleware, metrics, setup_logger
@@ -22,9 +24,6 @@ from schemas import (
     InvoiceHistoryItem,
     InvoiceHistoryResponse,
 )
-from database import get_db, init_db, InvoiceRepository
-from fastapi import Depends
-from sqlalchemy.orm import Session
 
 logger = setup_logger("InvoiceToSheetServer")
 
@@ -250,7 +249,6 @@ async def get_invoice_by_id(
             detail=f"Factura con ID {invoice_id} no encontrada.",
         )
     return InvoiceHistoryItem.model_validate(item)
-
 
 
 @app.post(

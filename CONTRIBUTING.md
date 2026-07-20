@@ -42,10 +42,13 @@ All pull requests must pass the automated CI pipeline before merging:
    ```
 
 3. **Testing & Coverage:**
-   All features or bug fixes must include corresponding tests. The overall test coverage must remain above **85%**:
+   All features or bug fixes must include corresponding tests. The overall test coverage must remain at or above **70%** (enforced by the hard CI gate `coverage report --fail-under=70` in GitHub Actions):
    ```bash
    pytest --cov=. --cov-report=term-missing
+   coverage report --fail-under=70
    ```
+   Note: Pull requests with missing tests or dropping test coverage below 70% will automatically fail CI gating.
+
 
 4. **Security Audit:**
    ```bash

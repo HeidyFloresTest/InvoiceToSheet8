@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from database import Base, InvoiceRecord, InvoiceRepository
+from database import Base, InvoiceRepository
 from schemas import InvoiceData
 
 

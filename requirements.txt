@@ -1,12 +1,17 @@
-fastapi>=0.111.0
-uvicorn[standard]>=0.30.0
-pydantic>=2.7.0
-pdfplumber>=0.11.0
-pandas>=2.2.0
-openpyxl>=3.1.2
-python-multipart>=0.0.9
-pytesseract>=0.3.10
-pdf2image>=1.17.0
-openai>=1.30.0
-python-dotenv>=1.0.1
-sentry-sdk[fastapi]>=2.0.0
+# =====================================================================
+# Dependencias de Producción (Versiones Exactas Congeladas)
+# Generado para garantizar reproducibilidad exacta y cero drift
+# =====================================================================
+fastapi==0.162.0
+uvicorn[standard]==0.54.0
+pydantic==2.14.1
+pdfplumber==0.11.10
+pandas==3.1.0
+openpyxl==3.1.5
+python-multipart==0.0.32
+pytesseract==0.3.13
+pdf2image==1.17.0
+openai==3.38.0
+python-dotenv==1.2.4
+sentry-sdk[fastapi]==2.73.0
+sqlalchemy==2.1.6

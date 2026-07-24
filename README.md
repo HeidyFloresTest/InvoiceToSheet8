@@ -125,16 +125,26 @@ python3 -m venv venv
 source venv/bin/activate
 ```
 
-### 3. Instalar dependencias de desarrollo y producción
+### 3. Instalar dependencias con bloqueo estricto (Reproducibilidad Garantizada)
+El repositorio incluye tanto `uv.lock` como `requirements.lock.txt` como fuentes de verdad para garantizar instalaciones 100% reproducibles y deterministas desde un clon limpio:
+
+Con `uv` (Recomendado, ultra-rápido):
+```bash
+uv sync
+```
+
+O con `pip` tradicional:
 ```bash
 pip install -r requirements-dev.txt
+# O para producción con hashes exactos:
+pip install -r requirements.lock.txt
 ```
 
 ### 4. Configurar variables de entorno (Opcional)
 ```bash
 cp .env.example .env
 ```
-Edita `.env` para agregar tu clave de OpenAI o ruta personalizada a Tesseract si aplica.
+Edita `.env` para agregar tu clave de OpenAI, configuración de base de datos o Sentry si aplica.
 
 ### 5. Iniciar el servidor local
 ```bash
@@ -145,11 +155,12 @@ uvicorn main:app --reload --host 127.0.0.1 --port 8000
 
 ## 🧪 Ejecución de Pruebas y Cobertura
 
-El proyecto cuenta con una suite completa de **43 pruebas unitarias e integrales** que cubren validación de esquemas, normalizadores, motor regex, pipeline PDF, generador de Excel y endpoints HTTP.
+El proyecto cuenta con una suite completa de **66 pruebas unitarias e integrales** que cubren validación de esquemas, motor de expresiones regulares, normalizadores de divisas (USD, EUR, MXN, CLP, COP, PEN, BRL, GBP), capa ORM de base de datos, fallbacks simulados de OCR y LLM, y endpoints HTTP:
 
-Ejecutar pruebas con reporte de cobertura:
+Ejecutar pruebas con reporte de cobertura estricto (>70% requerido por CI):
 ```bash
-pytest
+pytest --cov=. --cov-report=term-missing
+coverage report --fail-under=70
 ```
 
 Para generar un reporte HTML interactivo de cobertura:

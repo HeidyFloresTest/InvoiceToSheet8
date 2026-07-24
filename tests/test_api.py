@@ -88,7 +88,9 @@ def test_cors_disallowed_origin(client):
         "Access-Control-Request-Method": "POST",
     }
     response = client.options("/api/extract", headers=headers)
-    assert response.headers.get("access-control-allow-origin") != "http://malicious-site.example.com"
+    assert (
+        response.headers.get("access-control-allow-origin") != "http://malicious-site.example.com"
+    )
 
 
 def test_extract_invoices_corrupted_pdf(client):
@@ -103,7 +105,9 @@ def test_extract_invoices_corrupted_pdf(client):
     factura = data["facturas"][0]
     assert factura["estado"] == "error"
     assert factura["nombre_archivo_origen"] == "factura_corrupta.pdf"
-    assert "error" in factura["mensaje_error"].lower() or "dañado" in factura["mensaje_error"].lower()
+    assert (
+        "error" in factura["mensaje_error"].lower() or "dañado" in factura["mensaje_error"].lower()
+    )
 
 
 def test_extract_invoices_oversized_file(client):
@@ -148,4 +152,3 @@ def test_get_invoice_history_and_by_id(client, sample_pdf_bytes):
     # Consultar ID inexistente -> 404
     res_404 = client.get("/api/invoices/99999999")
     assert res_404.status_code == 404
-

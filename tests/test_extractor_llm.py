@@ -112,7 +112,10 @@ def test_llm_fallback_sets_metodo_extraccion_field():
     mock_client.beta.chat.completions.parse.return_value = mock_completion
 
     with (
-        patch("os.getenv", side_effect=lambda k, default=None: "sk-test" if k == "OPENAI_API_KEY" else default),
+        patch(
+            "os.getenv",
+            side_effect=lambda k, default=None: "sk-test" if k == "OPENAI_API_KEY" else default,
+        ),
         patch("extractor.OPENAI_AVAILABLE", True),
         patch("extractor.OpenAI", return_value=mock_client),
     ):

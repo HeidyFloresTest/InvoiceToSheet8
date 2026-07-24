@@ -5,7 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2026-10-26
+
+### Added
+- **Database & ORM Layering:** Added `database.py` with SQLAlchemy ORM models (`InvoiceRecord`) and `InvoiceRepository` pattern for persistent invoice auditing and storage.
+- **Invoice History Endpoints:** Added `GET /api/invoices/history` (paginated) and `GET /api/invoices/{invoice_id}` in `main.py`.
+- **Reproducible Lockfiles:** Added `uv.lock` generated via `uv lock` and pinned exact package versions in `requirements.txt` and `requirements-dev.txt`.
+- **Security Hardening:** Restricted CORS middleware to explicit origins via `ALLOWED_ORIGINS` environment variable.
+- **Hard CI Coverage Gate & Deploy Stage:** Added `coverage report --fail-under=70` check and container build verification `deploy` job in `.github/workflows/ci.yml`.
+- **Currency Expansion:** Added Brazilian Real (`BRL`, `R$`) and British Pound (`GBP`, `£`) support with unit tests in `extractor.py` and `tests/test_extractor.py`.
+- **Test Suite Breadth:** Expanded test suite to 66 passing tests with 92.46% code coverage.
+
 ## [1.1.0] - 2026-10-26
+
 
 ### Added
 - **Mock Integration Tests:** Added `tests/test_extractor_ocr.py` and `tests/test_extractor_llm.py` testing OCR (`pytesseract`/`pdf2image`) and LLM (`OpenAI`) fallback branches with mock fixtures, raising test coverage to 90.6%.

@@ -1,12 +1,13 @@
 # =====================================================================
-# Dependencias de Producción (Versiones Exactas Congeladas)
-# Generado para garantizar reproducibilidad exacta y cero drift
+# Dependencias de Producción (Versiones Exactas Congeladas PEP 508)
+# Generado para garantizar reproducibilidad exacta y compatibilidad 3.10-3.12
 # =====================================================================
 fastapi==0.162.0
 uvicorn[standard]==0.54.0
 pydantic==2.14.1
 pdfplumber==0.11.10
-pandas==3.1.0
+pandas==2.2.3; python_version < "3.11"
+pandas==3.1.0; python_version >= "3.11"
 openpyxl==3.1.5
 python-multipart==0.0.32
 pytesseract==0.3.13
@@ -14,4 +15,5 @@ pdf2image==1.17.0
 openai==3.38.0
 python-dotenv==1.2.4
 sentry-sdk[fastapi]==2.73.0
-sqlalchemy==2.1.6
+sqlalchemy==2.0.36; python_version < "3.11"
+sqlalchemy==2.1.6; python_version >= "3.11"

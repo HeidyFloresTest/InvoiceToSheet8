@@ -48,6 +48,28 @@ dev = [
     "pre-commit>=3.7.0"
 ]
 
+[tool.poetry]
+name = "invoicetosheet"
+version = "1.2.0"
+description = "Microservicio de extracción contable inteligente y consolidación en hojas de cálculo Excel."
+authors = ["Heidy Flores <heidyflores@users.noreply.github.com>"]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+fastapi = ">=0.111.0"
+uvicorn = ">=0.30.0"
+pydantic = ">=2.7.0"
+pdfplumber = ">=0.11.0"
+pandas = ">=2.2.0"
+openpyxl = ">=3.1.2"
+python-multipart = ">=0.0.9"
+pytesseract = ">=0.3.10"
+pdf2image = ">=1.17.0"
+openai = ">=1.30.0"
+python-dotenv = ">=1.0.1"
+sentry-sdk = ">=2.0.0"
+sqlalchemy = ">=2.0.0"
+
 # -------------------------------------------------------------
 # Configuración de Pytest
 # -------------------------------------------------------------
@@ -87,7 +109,8 @@ exclude_lines = [
     "pass"
 ]
 show_missing = true
-fail_under = 70
+fail_under = 80
+
 
 # -------------------------------------------------------------
 # Configuración del Linter y Formateador Ruff

@@ -94,9 +94,9 @@ jobs:
         run: |
           pytest --cov=. --cov-report=term-missing --cov-report=xml
 
-      - name: Enforce Coverage Threshold (Fail under 70%)
+      - name: Enforce Coverage Threshold (Fail under 80%)
         run: |
-          coverage report --fail-under=70
+          coverage report --fail-under=80
 
       - name: Upload Test Coverage Artifact
         if: matrix.python-version == '3.12'

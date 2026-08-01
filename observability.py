@@ -153,6 +153,12 @@ class ObservabilityAndSecurityMiddleware(BaseHTTPMiddleware):
                 exc_info=True,
                 extra={"request_id": request_id},
             )
+            try:
+                import sentry_sdk
+
+                sentry_sdk.capture_exception(exc)
+            except Exception:
+                pass
             raise exc
 
         process_time = round((time.time() - start_time) * 1000, 2)

@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2026-10-26
+
+### Added
+- **Observability Exception Tracking:** Sentry SDK automatic unhandled exception capture within custom middleware with unit test verification.
+- **Poetry Lockfile Ecosystem:** Generated official `poetry.lock` via Poetry 2.5.1 and configured Poetry project dependencies for multi-package manager compliance.
+- **Coverage Hard Gate:** Increased CI coverage threshold hard gate from 70% to 80% with 93.3% test coverage across 68 tests.
+- **Environment Configuration:** Added `DATABASE_URL` and `ALLOWED_ORIGINS` to `.env.example`.
+- **Multi-Python Matrix Compatibility:** Added PEP 508 environment markers to support Python 3.10 through 3.12 CI runners.
+
 ## [1.2.0] - 2026-10-26
 
 ### Added

@@ -9,7 +9,7 @@ import os
 import sentry_sdk
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, PlainTextResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
@@ -87,15 +87,29 @@ async def health_check():
     return {
         "status": "healthy",
         "service": "InvoiceToSheet API",
-        "version": "1.0.0",
+        "version": app.version,
         "uptime_seconds": snapshot["uptime_seconds"],
     }
 
 
-@app.get("/api/metrics", tags=["Observabilidad"], summary="Métricas de rendimiento y uso")
+@app.get("/api/metrics", tags=["Observabilidad"], summary="Métricas de rendimiento y uso (JSON)")
 async def get_metrics():
-    """Retorna estadísticas operativas en tiempo real (invoices procesadas, tasas de éxito, llamadas)."""
+    """Retorna estadísticas operativas en tiempo real en formato JSON estructurado."""
     return metrics.get_snapshot()
+
+
+@app.get(
+    "/metrics",
+    response_class=PlainTextResponse,
+    tags=["Observabilidad"],
+    summary="Métricas estándar de Prometheus (OpenMetrics)",
+)
+async def get_prometheus_metrics():
+    """Exporta métricas del microservicio en formato de texto plano compatible con Prometheus / Grafana."""
+    return PlainTextResponse(
+        content=metrics.to_prometheus(),
+        media_type="text/plain; version=0.0.4; charset=utf-8",
+    )
 
 
 # =====================================================================

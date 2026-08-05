@@ -152,3 +152,14 @@ def test_get_invoice_history_and_by_id(client, sample_pdf_bytes):
     # Consultar ID inexistente -> 404
     res_404 = client.get("/api/invoices/99999999")
     assert res_404.status_code == 404
+
+
+def test_prometheus_metrics_endpoint(client):
+    """Verifica que el endpoint /metrics responda en formato texto plano compatible con Prometheus."""
+    response = client.get("/metrics")
+    assert response.status_code == 200
+    assert "text/plain" in response.headers["content-type"]
+    body = response.text
+    assert "# HELP invoicetosheet_http_requests_total" in body
+    assert "# TYPE invoicetosheet_http_requests_total counter" in body
+    assert "invoicetosheet_uptime_seconds" in body

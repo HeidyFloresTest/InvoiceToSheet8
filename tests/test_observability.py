@@ -47,3 +47,28 @@ def test_structured_json_formatter():
     assert data["message"] == "Operación completada exitosamente"
     assert data["request_id"] == "req-12345"
     assert "timestamp" in data
+
+
+def test_prometheus_metrics_format():
+    """Verifica la generación del formato de texto plano compatible con Prometheus / OpenMetrics."""
+    metrics = SystemMetrics()
+    metrics.record_request()
+    metrics.record_invoices(success=5, warning=2, error=1)
+    metrics.record_excel()
+    metrics.record_error()
+
+    prom_text = metrics.to_prometheus()
+
+    assert "# HELP invoicetosheet_http_requests_total" in prom_text
+    assert "# TYPE invoicetosheet_http_requests_total counter" in prom_text
+    assert "invoicetosheet_http_requests_total 1" in prom_text
+
+    assert "# TYPE invoicetosheet_invoices_processed_total counter" in prom_text
+    assert 'invoicetosheet_invoices_processed_total{status="success"} 5' in prom_text
+    assert 'invoicetosheet_invoices_processed_total{status="warning"} 2' in prom_text
+    assert 'invoicetosheet_invoices_processed_total{status="error"} 1' in prom_text
+
+    assert "invoicetosheet_excels_generated_total 1" in prom_text
+    assert "invoicetosheet_unhandled_errors_total 1" in prom_text
+    assert "# TYPE invoicetosheet_uptime_seconds gauge" in prom_text
+    assert "invoicetosheet_uptime_seconds" in prom_text

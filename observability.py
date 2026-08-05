@@ -81,6 +81,35 @@ class SystemMetrics:
             "total_unhandled_errors": self.total_errors,
         }
 
+    def to_prometheus(self) -> str:
+        """Exporta métricas operativas en formato estándar de texto de Prometheus (OpenMetrics)."""
+        uptime = round(time.time() - self.start_time, 2)
+        lines = [
+            "# HELP invoicetosheet_http_requests_total Total de peticiones HTTP recibidas por el servicio.",
+            "# TYPE invoicetosheet_http_requests_total counter",
+            f"invoicetosheet_http_requests_total {self.total_requests}",
+            "",
+            "# HELP invoicetosheet_invoices_processed_total Total de facturas procesadas clasificadas por estado.",
+            "# TYPE invoicetosheet_invoices_processed_total counter",
+            f'invoicetosheet_invoices_processed_total{{status="success"}} {self.total_invoices_success}',
+            f'invoicetosheet_invoices_processed_total{{status="warning"}} {self.total_invoices_warning}',
+            f'invoicetosheet_invoices_processed_total{{status="error"}} {self.total_invoices_error}',
+            "",
+            "# HELP invoicetosheet_excels_generated_total Total de archivos Excel generados y exportados.",
+            "# TYPE invoicetosheet_excels_generated_total counter",
+            f"invoicetosheet_excels_generated_total {self.total_excels_generated}",
+            "",
+            "# HELP invoicetosheet_unhandled_errors_total Total de excepciones no controladas registradas.",
+            "# TYPE invoicetosheet_unhandled_errors_total counter",
+            f"invoicetosheet_unhandled_errors_total {self.total_errors}",
+            "",
+            "# HELP invoicetosheet_uptime_seconds Tiempo total de actividad del servicio en segundos.",
+            "# TYPE invoicetosheet_uptime_seconds gauge",
+            f"invoicetosheet_uptime_seconds {uptime}",
+            "",
+        ]
+        return "\n".join(lines)
+
 
 metrics = SystemMetrics()
 

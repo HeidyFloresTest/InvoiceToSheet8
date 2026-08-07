@@ -155,12 +155,12 @@ uvicorn main:app --reload --host 127.0.0.1 --port 8000
 
 ## 🧪 Ejecución de Pruebas y Cobertura
 
-El proyecto cuenta con una suite completa de **66 pruebas unitarias e integrales** que cubren validación de esquemas, motor de expresiones regulares, normalizadores de divisas (USD, EUR, MXN, CLP, COP, PEN, BRL, GBP), capa ORM de base de datos, fallbacks simulados de OCR y LLM, y endpoints HTTP:
+El proyecto cuenta con una suite completa de **más de 75 pruebas unitarias, de integración y de seguridad** que cubren validación de esquemas, motor de expresiones regulares, normalizadores de divisas (USD, EUR, MXN, CLP, COP, PEN, BRL, GBP), capa ORM de base de datos, fallbacks de OCR y LLM, mitigaciones OWASP y endpoints HTTP:
 
-Ejecutar pruebas con reporte de cobertura estricto (>70% requerido por CI):
+Ejecutar pruebas con reporte de cobertura estricto (>80% requerido por CI):
 ```bash
 pytest --cov=. --cov-report=term-missing
-coverage report --fail-under=70
+coverage report --fail-under=80
 ```
 
 Para generar un reporte HTML interactivo de cobertura:
@@ -192,16 +192,22 @@ mypy .
 
 | Método | Endpoint | Descripción |
 | :--- | :--- | :--- |
-| `GET` | `/health` | Verificación de disponibilidad y tiempo activo del servicio. |
-| `GET` | `/api/metrics` | Telemetría en vivo: facturas procesadas, tasas de éxito y tiempos. |
+| `GET` | `/health` | Verificación de disponibilidad, versión activa y uptime del servicio. |
+| `GET` | `/metrics` | Telemetría estándar de Prometheus / OpenMetrics para scraping. |
+| `GET` | `/api/metrics` | Telemetría en tiempo real en formato JSON estructurado. |
 | `POST` | `/api/extract` | Procesamiento por lotes de comprobantes PDF (`multipart/form-data`). |
 | `POST` | `/api/export-excel` | Generación en memoria y descarga del archivo `.xlsx` consolidado. |
+| `GET` | `/api/invoices/history` | Consulta paginada del historial de facturas persistidas en la base de datos ORM. |
+| `GET` | `/api/invoices/{id}` | Búsqueda y auditoría de factura individual por ID primario. |
 | `GET` | `/docs` | Documentación interactiva Swagger / OpenAPI. |
 
 ---
 
-## 🛡 Observabilidad y Seguridad
+## 🛡 Observabilidad, Arquitectura y Seguridad
 
+- **Arquitectura de Software:** Consulta el diseño detallado del pipeline, flujo de datos y diagramas de componentes en [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+- **Política de Seguridad:** Lineamientos de divulgación responsable y SLA de respuesta en [SECURITY.md](SECURITY.md).
+- **Código de Conducta:** Consulta nuestro compromiso comunitario en [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 - **Monitoreo de Excepciones en Producción (Sentry):** Integración nativa con `sentry-sdk[fastapi]`. Configura la variable `SENTRY_DSN` en tu entorno o `.env` para captura automática de trazas de error en tiempo real (si no está definida, opera como *no-op* sin interrumpir el servicio).
 - **Trazabilidad:** Cada petición genera un identificador único `X-Request-ID` que se propaga a los logs estructurados JSON para auditoría.
 - **Resiliencia ante Fallos:** Si un archivo dentro de un lote está dañado o protegido con contraseña, el sistema aísla el error y procesa el resto sin interrupciones.
@@ -216,6 +222,7 @@ El pipeline de CI en [`.github/workflows/ci.yml`](.github/workflows/ci.yml) defi
 2. `Static Type Analysis (Mypy)` (`typecheck`)
 3. `Test on Python 3.12 (ubuntu-latest)` (`test`)
 4. `Dependency Security Audit (pip-audit)` (`security-audit`)
+5. `Deploy Packaging Verification` (`deploy`)
 
 Para más detalles sobre el proceso de contribución y versiones, consulta [CONTRIBUTING.md](CONTRIBUTING.md) y [CHANGELOG.md](CHANGELOG.md).
 

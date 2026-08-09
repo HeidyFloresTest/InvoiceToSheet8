@@ -39,8 +39,8 @@ def test_extract_with_llm_successful_mock():
                 "fake-api-key" if k == "OPENAI_API_KEY" else default
             ),
         ),
-        patch("extractor.OPENAI_AVAILABLE", True),
-        patch("extractor.OpenAI", return_value=mock_client),
+        patch("extractor.llm.OPENAI_AVAILABLE", True),
+        patch("extractor.llm.OpenAI", return_value=mock_client),
     ):
         result = extract_with_llm("Texto desordenado de factura", "factura_compleja.pdf")
 
@@ -73,7 +73,7 @@ def test_pipeline_triggers_llm_on_warning_fallback(sample_pdf_bytes):
                 "fake-api-key" if k == "OPENAI_API_KEY" else default
             ),
         ),
-        patch("extractor.extract_with_llm", return_value=mock_llm_invoice),
+        patch("extractor.pipeline.llm_module.extract_with_llm", return_value=mock_llm_invoice),
     ):
         # Simular resultado inicial en estado 'warning'
         invoice = extract_invoice_from_pdf(sample_pdf_bytes, "warning_invoice.pdf")
@@ -116,10 +116,52 @@ def test_llm_fallback_sets_metodo_extraccion_field():
             "os.getenv",
             side_effect=lambda k, default=None: "sk-test" if k == "OPENAI_API_KEY" else default,
         ),
-        patch("extractor.OPENAI_AVAILABLE", True),
-        patch("extractor.OpenAI", return_value=mock_client),
+        patch("extractor.llm.OPENAI_AVAILABLE", True),
+        patch("extractor.llm.OpenAI", return_value=mock_client),
     ):
         result = extract_with_llm("Receipt without clear regex patterns", "scanned_receipt.pdf")
         assert result is not None
         assert result.metodo_extraccion == "llm"
         assert result.estado == "success"
+
+
+def test_openai_local_mock_stub_without_external_network():
+    """
+    Test de integración que ejercita el cliente OpenAI usando un stub local
+    sin requerir cuentas externas ni acceso a internet en CI.
+    """
+    stub_invoice = InvoiceData(
+        numero_factura="STUB-2026",
+        fecha_emision="2026-10-26",
+        nombre_proveedor="Proveedor Local Stub",
+        id_fiscal_proveedor="STUB123456",
+        subtotal=250.0,
+        impuestos=40.0,
+        total=290.0,
+        moneda="EUR",
+        nombre_archivo_origen="stub_invoice.pdf",
+        estado="success",
+        metodo_extraccion="llm",
+    )
+
+    stub_choice = MagicMock()
+    stub_choice.message.parsed = stub_invoice
+    stub_response = MagicMock(choices=[stub_choice])
+
+    stub_client = MagicMock()
+    stub_client.beta.chat.completions.parse.return_value = stub_response
+
+    with (
+        patch(
+            "os.getenv",
+            side_effect=lambda k, default=None: "sk-stub-key" if k == "OPENAI_API_KEY" else default,
+        ),
+        patch("extractor.llm.OPENAI_AVAILABLE", True),
+        patch("extractor.llm.OpenAI", return_value=stub_client),
+    ):
+        invoice = extract_with_llm("Factura compleja sin patrón regex", "stub_invoice.pdf")
+        assert invoice is not None
+        assert invoice.numero_factura == "STUB-2026"
+        assert invoice.moneda == "EUR"
+        assert invoice.total == 290.0
+        assert invoice.metodo_extraccion == "llm"

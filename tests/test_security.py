@@ -58,8 +58,8 @@ def test_openai_api_key_redaction_in_logs(caplog):
             "os.getenv",
             side_effect=lambda k, default=None: sensitive_key if k == "OPENAI_API_KEY" else default,
         ),
-        patch("extractor.OPENAI_AVAILABLE", True),
-        patch("extractor.OpenAI", return_value=mock_client),
+        patch("extractor.llm.OPENAI_AVAILABLE", True),
+        patch("extractor.llm.OpenAI", return_value=mock_client),
     ):
         result = extract_with_llm("Texto de prueba", "archivo.pdf")
         assert result is None

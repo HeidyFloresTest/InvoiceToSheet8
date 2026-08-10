@@ -113,7 +113,6 @@ def test_extract_invoices_corrupted_pdf(client):
 def test_extract_invoices_oversized_file(client):
     """Verifica que un archivo que excede los 25MB sea rechazado grácilmente por tamaño."""
     oversized_size = 25 * 1024 * 1024 + 1024  # 25MB + 1KB
-    # Usar un buffer simulado sin consumir memoria innecesaria
     oversized_content = b"0" * oversized_size
     files = [("files", ("factura_gigante.pdf", oversized_content, "application/pdf"))]
     response = client.post("/api/extract", files=files)
@@ -124,6 +123,32 @@ def test_extract_invoices_oversized_file(client):
     factura = data["facturas"][0]
     assert factura["estado"] == "error"
     assert "excede el tamaño máximo" in factura["mensaje_error"]
+
+
+def test_api_rejects_oversized_file(client):
+    """Verifica explícitamente rechazo de archivo >25MB con status 200 y estado='error'."""
+    oversized_size = 25 * 1024 * 1024 + 2048
+    oversized_content = b"A" * oversized_size
+    files = [("files", ("oversized_document.pdf", oversized_content, "application/pdf"))]
+    response = client.post("/api/extract", files=files)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_archivos"] == 1
+    assert data["total_con_error"] == 1
+    assert data["facturas"][0]["estado"] == "error"
+    assert "excede el tamaño máximo" in data["facturas"][0]["mensaje_error"]
+
+
+def test_api_rejects_non_pdf_extension(client):
+    """Verifica explícitamente rechazo de archivo no-PDF (.txt) con status 200 y estado='error'."""
+    files = [("files", ("factura.txt", b"Texto plano simulado de factura", "text/plain"))]
+    response = client.post("/api/extract", files=files)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["total_archivos"] == 1
+    assert data["total_con_error"] == 1
+    assert data["facturas"][0]["estado"] == "error"
+    assert "formato no soportado" in data["facturas"][0]["mensaje_error"].lower()
 
 
 def test_get_invoice_history_and_by_id(client, sample_pdf_bytes):

@@ -48,7 +48,7 @@ graph TD
 | Module | Responsibility | Key Classes & Functions |
 | :--- | :--- | :--- |
 | [`main.py`](file:///c:/Users/hflor/Downloads/Pruebas/main.py) | API gateway, route orchestration, CORS, static UI delivery. | `app`, `health_check`, `extract_invoices`, `export_excel`, `get_prometheus_metrics`. |
-| [`extractor.py`](file:///c:/Users/hflor/Downloads/Pruebas/extractor.py) | Hybrid PDF extraction pipeline (plumber + OCR + Regex + LLM). | `extract_invoice_from_pdf`, `normalize_amount`, `normalize_date`, `extract_with_llm`. |
+| [`extractor/`](file:///c:/Users/hflor/Downloads/Pruebas/extractor) | Modular package (`normalizers`, `ocr`, `llm`, `engine`, `pipeline`). | `extract_invoice_from_pdf`, `normalize_amount`, `normalize_date`, `extract_with_llm`, `RegexExtractor`. |
 | [`database.py`](file:///c:/Users/hflor/Downloads/Pruebas/database.py) | Persistence layer, ORM models, session management. | `InvoiceRecord`, `InvoiceRepository`, `get_db`, `init_db`. |
 | [`excel_generator.py`](file:///c:/Users/hflor/Downloads/Pruebas/excel_generator.py) | Styled Excel spreadsheet generation with formulas. | `generate_invoice_excel`. |
 | [`observability.py`](file:///c:/Users/hflor/Downloads/Pruebas/observability.py) | Correlation ID tracing, Prometheus exposition, JSON logging. | `ObservabilityAndSecurityMiddleware`, `SystemMetrics`, `StructuredJsonFormatter`. |

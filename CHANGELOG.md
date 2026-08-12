@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-10-26
+
+### Refactored
+- **Modular Package Architecture:** Refactored monolithic `extractor.py` (509 LOC) into a high-cohesion `extractor/` package (`normalizers.py`, `ocr.py`, `llm.py`, `engine.py`, `pipeline.py`). All files now strictly under 250 LOC with zero files exceeding the 500 LOC cleanliness ceiling.
+
+### Added
+- **True Integration Testing without External Accounts:** Added real OCR integration test in `tests/test_extractor_ocr.py` asserting extracted text, and local mock stub test for OpenAI client in `tests/test_extractor_llm.py` without network dependencies.
+- **Input Boundary Malformed Upload Verification:** Added `test_api_rejects_oversized_file` (>25MB) and `test_api_rejects_non_pdf_extension` in `tests/test_api.py`.
+- **CI/CD Production Deployment Stage:** Configured explicit `deploy` stage in `.github/workflows/ci.yml` with `environment: production` and release container verification.
+- **Test Suite Expansion:** Expanded automated test suite to 79 tests with 93.81% code coverage.
+
 ## [1.2.1] - 2026-10-26
 
 ### Added

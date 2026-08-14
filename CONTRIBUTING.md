@@ -6,8 +6,8 @@ Thank you for your interest in contributing to **InvoiceToSheet**! We welcome bu
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/HeidyFloresTest/InvoiceToSheet1.git
-   cd InvoiceToSheet1
+   git clone https://github.com/HeidyFloresTest/InvoiceToSheet6.git
+   cd InvoiceToSheet6
    ```
 
 2. **Create and activate a virtual environment:**

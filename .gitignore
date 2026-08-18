@@ -41,3 +41,9 @@ facturas_consolidadas*.xlsx
 *.db
 *.sqlite3
 
+# Empaquetado y distribución de Python
+*.egg-info/
+dist/
+build/
+eggs/
+.eggs/

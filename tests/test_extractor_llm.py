@@ -127,37 +127,63 @@ def test_llm_fallback_sets_metodo_extraccion_field():
 
 def test_openai_local_mock_stub_without_external_network():
     """
-    Test de integración que ejercita el cliente OpenAI usando un stub local
+    Test de integración que ejercita el cliente OpenAI usando un mock server local con httpx.MockTransport
     sin requerir cuentas externas ni acceso a internet en CI.
     """
-    stub_invoice = InvoiceData(
-        numero_factura="STUB-2026",
-        fecha_emision="2026-10-26",
-        nombre_proveedor="Proveedor Local Stub",
-        id_fiscal_proveedor="STUB123456",
-        subtotal=250.0,
-        impuestos=40.0,
-        total=290.0,
-        moneda="EUR",
-        nombre_archivo_origen="stub_invoice.pdf",
-        estado="success",
-        metodo_extraccion="llm",
+    import json
+
+    import httpx
+    from openai import OpenAI
+
+    def mock_openai_handler(request: httpx.Request) -> httpx.Response:
+        data = {
+            "id": "chatcmpl-stub-123",
+            "object": "chat.completion",
+            "created": 1700000000,
+            "model": "gpt-4o-mini",
+            "choices": [
+                {
+                    "index": 0,
+                    "message": {
+                        "role": "assistant",
+                        "content": json.dumps(
+                            {
+                                "numero_factura": "STUB-2026",
+                                "fecha_emision": "2026-10-26",
+                                "nombre_proveedor": "Proveedor Local Stub",
+                                "id_fiscal_proveedor": "STUB123456",
+                                "subtotal": 250.0,
+                                "impuestos": 40.0,
+                                "total": 290.0,
+                                "moneda": "EUR",
+                                "nombre_archivo_origen": "stub_invoice.pdf",
+                                "estado": "success",
+                                "metodo_extraccion": "llm",
+                                "mensaje_error": None,
+                            }
+                        ),
+                    },
+                    "finish_reason": "stop",
+                }
+            ],
+            "usage": {"prompt_tokens": 10, "completion_tokens": 20, "total_tokens": 30},
+        }
+        return httpx.Response(200, json=data)
+
+    mock_http_client = httpx.Client(transport=httpx.MockTransport(mock_openai_handler))
+    real_client_with_mock_transport = OpenAI(
+        api_key="sk-test-valid-key-for-local-mock-123456", http_client=mock_http_client
     )
-
-    stub_choice = MagicMock()
-    stub_choice.message.parsed = stub_invoice
-    stub_response = MagicMock(choices=[stub_choice])
-
-    stub_client = MagicMock()
-    stub_client.beta.chat.completions.parse.return_value = stub_response
 
     with (
         patch(
             "os.getenv",
-            side_effect=lambda k, default=None: "sk-stub-key" if k == "OPENAI_API_KEY" else default,
+            side_effect=lambda k, default=None: (
+                "sk-test-valid-key-for-local-mock-123456" if k == "OPENAI_API_KEY" else default
+            ),
         ),
         patch("extractor.llm.OPENAI_AVAILABLE", True),
-        patch("extractor.llm.OpenAI", return_value=stub_client),
+        patch("extractor.llm.OpenAI", return_value=real_client_with_mock_transport),
     ):
         invoice = extract_with_llm("Factura compleja sin patrón regex", "stub_invoice.pdf")
         assert invoice is not None

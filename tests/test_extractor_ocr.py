@@ -70,9 +70,6 @@ def test_real_ocr_pipeline_execution():
     Test de integración que ejercita la ejecución de pytesseract sobre una imagen generada.
     Valida la extracción de texto sin omitir aserciones.
     """
-    import os
-    import shutil
-
     import pytesseract
     from PIL import Image, ImageDraw
 
@@ -81,9 +78,12 @@ def test_real_ocr_pipeline_execution():
     draw.text((20, 20), "FACTURA: INV-REAL-999", fill=(0, 0, 0))
     draw.text((20, 60), "TOTAL: 1500.00 USD", fill=(0, 0, 0))
 
-    if not shutil.which("tesseract") and not os.path.exists(
-        getattr(pytesseract.pytesseract, "tesseract_cmd", "")
-    ):
+    try:
+        extracted = pytesseract.image_to_string(img)
+        assert isinstance(extracted, str)
+        assert len(extracted.strip()) > 0
+    except pytesseract.TesseractNotFoundError:
+        # Fallback hermético para entornos locales sin el binario tesseract en el PATH del host
         with patch(
             "pytesseract.image_to_string",
             return_value="FACTURA: INV-REAL-999\nTOTAL: 1500.00 USD",
@@ -91,7 +91,3 @@ def test_real_ocr_pipeline_execution():
             extracted = pytesseract.image_to_string(img)
             assert isinstance(extracted, str)
             assert "INV-REAL-999" in extracted
-    else:
-        extracted = pytesseract.image_to_string(img)
-        assert isinstance(extracted, str)
-        assert len(extracted.strip()) > 0

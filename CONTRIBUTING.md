@@ -66,9 +66,19 @@ We follow the [Conventional Commits](https://www.conventionalcommits.org/) stand
 - `refactor(...)`: Code changes that neither fix a bug nor add a feature
 - `chore(...)`: Maintenance tasks or dependency updates
 
+## Atomic Commits & Test Pairing Policy
+
+To maintain a mineable, reproducible, and transparent engineering history, we enforce the following commit granularity standards:
+
+1. **One Logical Change Per Commit:** Every commit must represent a single, self-contained engineering change. Never bundle refactorings, formatting sweeps, and feature additions in a single commit.
+2. **Mandatory Test-Pairing:** Every new feature, extractor rule, or bugfix must ship together with its proving tests in the very same commit (e.g. changes in `extractor/engine.py` paired with tests in `tests/test_extractor.py`).
+3. **No Test-Less Feature Commits:** Commits adding application logic without corresponding automated tests will fail review.
+4. **Hermetic Test Isolation:** Tests must run 100% offline without requiring external network connectivity, live cloud credentials, or third-party paid accounts.
+
 ## Pull Request Guidelines
 
 1. Create a focused branch (`feat/your-feature-name` or `fix/your-fix-name`).
-2. Ship changes together with their tests in atomic commits.
-3. Verify all checks pass locally before opening a PR.
+2. Ship changes together with their tests in atomic commits adhering to the test-pairing policy.
+3. Verify all checks pass locally (`pytest`, `ruff check .`, `mypy .`) before opening a PR.
 4. Ensure your PR description clearly describes the problem and solution.
+

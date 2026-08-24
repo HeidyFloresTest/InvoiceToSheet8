@@ -17,6 +17,14 @@ from extractor.ocr import (
     extract_text_with_ocr,
     pytesseract,
 )
+from extractor.exceptions import (
+    CorruptedPdfError,
+    InvalidInvoiceFormatError,
+    InvoiceExtractionError,
+    LlmFallbackError,
+    OcrUnavailableError,
+    PayloadTooLargeError,
+)
 from extractor.pipeline import extract_invoice_from_pdf
 
 __all__ = [
@@ -32,4 +40,10 @@ __all__ = [
     "OpenAI",
     "pytesseract",
     "convert_from_bytes",
+    "InvoiceExtractionError",
+    "CorruptedPdfError",
+    "OcrUnavailableError",
+    "LlmFallbackError",
+    "InvalidInvoiceFormatError",
+    "PayloadTooLargeError",
 ]

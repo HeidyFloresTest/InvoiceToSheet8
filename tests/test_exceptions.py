@@ -77,3 +77,43 @@ def test_raising_and_catching_typed_exceptions():
     with pytest.raises(InvoiceExtractionError) as exc_info_ocr:
         raise OcrUnavailableError()
     assert exc_info_ocr.value.code == "OCR_UNAVAILABLE"
+
+
+def test_api_exception_handler_serializes_error_detail(client):
+    """Verifica que el exception handler de FastAPI mapee InvoiceExtractionError a ErrorDetail."""
+    from extractor.exceptions import (
+        InvoiceExtractionError,
+        OcrUnavailableError,
+        PayloadTooLargeError,
+    )
+    from main import app
+
+    @app.get("/api/test-raise-invoice-error")
+    async def route_raising_invoice_error():
+        raise InvoiceExtractionError(
+            "Fallo de prueba en extracción", code="TEST_EXTRACTION_ERR", details={"step": 1}
+        )
+
+    @app.get("/api/test-raise-payload-error")
+    async def route_raising_payload_error():
+        raise PayloadTooLargeError()
+
+    @app.get("/api/test-raise-ocr-error")
+    async def route_raising_ocr_error():
+        raise OcrUnavailableError()
+
+    res1 = client.get("/api/test-raise-invoice-error")
+    assert res1.status_code == 400
+    data1 = res1.json()
+    assert data1["code"] == "TEST_EXTRACTION_ERR"
+    assert data1["message"] == "Fallo de prueba en extracción"
+    assert "timestamp" in data1
+    assert data1["details"]["step"] == 1
+
+    res2 = client.get("/api/test-raise-payload-error")
+    assert res2.status_code == 413
+    assert res2.json()["code"] == "PAYLOAD_TOO_LARGE"
+
+    res3 = client.get("/api/test-raise-ocr-error")
+    assert res3.status_code == 502
+    assert res3.json()["code"] == "OCR_UNAVAILABLE"

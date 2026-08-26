@@ -7,16 +7,26 @@ telemetría y entrega de la interfaz gráfica estática.
 import os
 
 import sentry_sdk
-from fastapi import Depends, FastAPI, File, HTTPException, UploadFile, status
+from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, PlainTextResponse, StreamingResponse
+from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
 from database import InvoiceRepository, get_db, init_db
 from excel_generator import generate_invoice_excel
-from extractor import extract_invoice_from_pdf
-from observability import ObservabilityAndSecurityMiddleware, metrics, setup_logger
+from extractor import (
+    InvalidInvoiceFormatError,
+    InvoiceExtractionError,
+    PayloadTooLargeError,
+    extract_invoice_from_pdf,
+)
+from observability import (
+    ErrorDetail,
+    ObservabilityAndSecurityMiddleware,
+    metrics,
+    setup_logger,
+)
 from schemas import (
     BatchExtractResponse,
     ExportExcelRequest,
@@ -68,6 +78,25 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(InvoiceExtractionError)
+async def invoice_extraction_error_handler(request: Request, exc: InvoiceExtractionError):
+    """Mapea excepciones tipadas de dominio a respuestas JSON estructuradas con ErrorDetail."""
+    request_id = getattr(request.state, "request_id", None)
+    error_detail = ErrorDetail(
+        code=exc.code,
+        message=exc.message,
+        request_id=request_id,
+        details=exc.details or None,
+    )
+    status_code = status.HTTP_400_BAD_REQUEST
+    if exc.code == "PAYLOAD_TOO_LARGE":
+        status_code = status.HTTP_413_REQUEST_ENTITY_TOO_LARGE
+    elif exc.code in ("OCR_UNAVAILABLE", "LLM_FALLBACK_ERROR"):
+        status_code = status.HTTP_502_BAD_GATEWAY
+    return JSONResponse(status_code=status_code, content=error_detail.model_dump())
+
 
 # Rutas de archivos estáticos
 STATIC_DIR = os.path.join(os.path.dirname(__file__), "static")
@@ -155,11 +184,14 @@ async def extract_invoices(
 
         # Validación de formato por extensión
         if not filename.lower().endswith(".pdf"):
+            format_err = InvalidInvoiceFormatError(
+                f"Formato no soportado para '{filename}'. Debe ser un archivo .pdf."
+            )
             results.append(
                 InvoiceData(
                     nombre_archivo_origen=filename,
                     estado="error",
-                    mensaje_error="Formato no soportado. Debe ser un archivo .pdf.",
+                    mensaje_error=format_err.message,
                 )
             )
             errores += 1
@@ -170,11 +202,14 @@ async def extract_invoices(
 
             # Validación de tamaño de archivo
             if len(content) > MAX_FILE_SIZE_BYTES:
+                size_err = PayloadTooLargeError(
+                    f"El archivo '{filename}' excede el tamaño máximo permitido de {MAX_FILE_SIZE_BYTES // (1024 * 1024)}MB."
+                )
                 results.append(
                     InvoiceData(
                         nombre_archivo_origen=filename,
                         estado="error",
-                        mensaje_error=f"El archivo excede el tamaño máximo permitido de {MAX_FILE_SIZE_BYTES // (1024 * 1024)}MB.",
+                        mensaje_error=size_err.message,
                     )
                 )
                 errores += 1
@@ -191,6 +226,18 @@ async def extract_invoices(
             else:
                 errores += 1
 
+        except InvoiceExtractionError as e:
+            logger.warning(
+                f"Error de dominio de extracción en '{filename}': [{e.code}] {e.message}"
+            )
+            results.append(
+                InvoiceData(
+                    nombre_archivo_origen=filename,
+                    estado="error",
+                    mensaje_error=e.message,
+                )
+            )
+            errores += 1
         except Exception as e:
             logger.error(f"Fallo no controlado procesando '{filename}': {str(e)}", exc_info=True)
             results.append(

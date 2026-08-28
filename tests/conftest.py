@@ -9,6 +9,16 @@ from main import app
 from schemas import InvoiceData
 
 
+@pytest.fixture(autouse=True)
+def hermetic_env_defaults(monkeypatch):
+    """
+    Garantiza que toda la suite de pruebas se ejecute de forma 100% hermética
+    y fuera de línea, aislando las pruebas de credenciales externas o servicios en la nube.
+    """
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-dummy-test-key-for-hermetic-testing-only")
+    monkeypatch.setenv("SENTRY_DSN", "")
+
+
 @pytest.fixture
 def client():
     """Cliente de pruebas para interactuar con la API FastAPI."""

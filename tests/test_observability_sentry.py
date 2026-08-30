@@ -63,3 +63,32 @@ def test_sentry_captures_unhandled_exception():
             pass
 
         mock_capture.assert_called_once()
+
+
+def test_sentry_init_called_only_when_dsn_set(monkeypatch):
+    """Verifica explícitamente que sentry_sdk.init se llame SOLO si SENTRY_DSN está presente."""
+    import sentry_sdk
+
+    from main import init_sentry
+
+    with patch.object(sentry_sdk, "init") as mock_init:
+        # Caso 1: SENTRY_DSN ausente o None
+        monkeypatch.delenv("SENTRY_DSN", raising=False)
+        assert init_sentry() is False
+        mock_init.assert_not_called()
+
+        # Caso 2: SENTRY_DSN vacío
+        monkeypatch.setenv("SENTRY_DSN", "   ")
+        assert init_sentry() is False
+        mock_init.assert_not_called()
+
+        # Caso 3: SENTRY_DSN con URI válida
+        valid_dsn = "https://public_key@sentry.io/4501234567890"
+        monkeypatch.setenv("SENTRY_DSN", valid_dsn)
+        assert init_sentry() is True
+        mock_init.assert_called_once_with(
+            dsn=valid_dsn,
+            traces_sample_rate=0.1,
+            send_default_pii=False,
+        )
+

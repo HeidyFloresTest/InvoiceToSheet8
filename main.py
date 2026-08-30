@@ -37,14 +37,22 @@ from schemas import (
 
 logger = setup_logger("InvoiceToSheetServer")
 
+def init_sentry() -> bool:
+    """Inicializa Sentry SDK condicionalmente si SENTRY_DSN está presente en el entorno."""
+    dsn = os.getenv("SENTRY_DSN")
+    if dsn and dsn.strip():
+        sentry_sdk.init(
+            dsn=dsn.strip(),
+            traces_sample_rate=0.1,
+            send_default_pii=False,
+        )
+        return True
+    return False
+
+
 # Inicialización condicional de Sentry para error tracking en producción
-sentry_dsn = os.getenv("SENTRY_DSN")
-if sentry_dsn:
-    sentry_sdk.init(
-        dsn=sentry_dsn,
-        traces_sample_rate=0.1,
-        send_default_pii=False,
-    )
+init_sentry()
+
 
 # Límite máximo de tamaño por archivo: 25 MB
 MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024

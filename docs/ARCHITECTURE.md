@@ -105,12 +105,30 @@ The normalization engine handles complex regional formatting conventions:
 
 ## 5. Telemetry & Metrics Design
 
-The service provides dual observability endpoints:
+### 5.1 Sentry Event Flow & Integration Protocol
 
-1. **`GET /api/metrics` (JSON):** Real-time JSON snapshot intended for internal health dashboards and quick polling.
-2. **`GET /metrics` (Prometheus text format):** Standard OpenMetrics endpoint intended for Prometheus server scraping and Grafana visualization, providing:
-   - `invoicetosheet_http_requests_total` (counter)
-   - `invoicetosheet_invoices_processed_total{status="success|warning|error"}` (counter)
-   - `invoicetosheet_excels_generated_total` (counter)
-   - `invoicetosheet_unhandled_errors_total` (counter)
-   - `invoicetosheet_uptime_seconds` (gauge)
+Error tracking via Sentry SDK (`sentry-sdk[fastapi]>=2.0.0`) is designed to guarantee zero unhandled failure modes while avoiding hard runtime dependencies in disconnected environments:
+
+1. **Conditional Boot Initialization (`main.init_sentry`):**
+   - At startup, the server inspects the `SENTRY_DSN` environment variable.
+   - If `SENTRY_DSN` is empty, unset, or whitespace, initialization is cleanly bypassed (`init_sentry() -> False`), ensuring local tests, sandbox runs, and development containers operate 100% offline without crashing or emitting warning telemetry.
+   - When a valid DSN is provided, Sentry is initialized with non-intrusive trace sampling (`traces_sample_rate=0.1`) and PII protection (`send_default_pii=False`).
+
+2. **Middleware Exception Capture Lifecycle:**
+   - Any unhandled exception escaping controller logic is intercepted by `ObservabilityAndSecurityMiddleware.dispatch`.
+   - The middleware checks if Sentry is active, formats the event context with correlation metadata (`request_id`, HTTP method, path, and sanitized client IP), and invokes `sentry_sdk.capture_exception(exc)`.
+   - Sensitive values such as `OPENAI_API_KEY` are scrubbed before event serialization.
+   - A sanitized HTTP 500 JSON response matching `ErrorDetail` is returned to the client, preventing internal stack trace leaks.
+
+### 5.2 Metric Distinction: `/api/metrics` (JSON) vs `/metrics` (Prometheus)
+
+The service provides dual observability endpoints catering to distinct monitoring consumers:
+
+| Feature / Dimension | `GET /api/metrics` | `GET /metrics` |
+| :--- | :--- | :--- |
+| **Payload Format** | Structured JSON (`application/json`) | OpenMetrics text format (`text/plain; version=0.0.4`) |
+| **Intended Consumer** | Frontend web UI, custom admin dashboards, quick curl health checks | Prometheus server, VictoriaMetrics, Grafana Agent scraper |
+| **Key Metrics Exposed** | Aggregated object with `invoices`, `uptime_seconds`, `requests` | Counters (`_total`) with label dimensions: `{status="success\|warning\|error"}` |
+| **Scraping Overhead** | Minimal JSON serialization via Pydantic model | Zero-allocation string concatenation adhering to Prometheus exposition standard |
+| **Gauge Metrics** | `uptime_seconds` (float timestamp delta) | `invoicetosheet_uptime_seconds` (gauge) |
+

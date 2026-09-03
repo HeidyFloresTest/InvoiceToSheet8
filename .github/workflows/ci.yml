@@ -5,6 +5,7 @@ on:
     branches: [ "main", "master" ]
   pull_request:
     branches: [ "main", "master" ]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -12,7 +13,7 @@ concurrency:
 
 jobs:
   lint:
-    name: Code Quality (Ruff Linter & Formatter)
+    name: lint
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -29,14 +30,14 @@ jobs:
           python -m pip install --upgrade pip
           pip install ruff
 
-      - name: Run Ruff Lint Check
+      - name: Run linter
         run: ruff check .
 
-      - name: Run Ruff Format Check
+      - name: Run formatter check
         run: ruff format --check .
 
   typecheck:
-    name: Static Type Analysis (Mypy)
+    name: typecheck
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -53,17 +54,15 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
 
-      - name: Run Mypy Typecheck
+      - name: Run typecheck
         run: mypy .
 
   test:
-    name: Test on Python ${{ matrix.python-version }} (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    needs: [lint, typecheck]
+    name: test
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest]
         python-version: ["3.10", "3.11", "3.12"]
 
     steps:
@@ -90,7 +89,7 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
 
-      - name: Run Pytest with Coverage
+      - name: Run tests
         run: |
           pytest --cov=. --cov-report=term-missing --cov-report=xml
 
@@ -107,7 +106,7 @@ jobs:
           retention-days: 7
 
   security-audit:
-    name: Dependency Security Audit (pip-audit)
+    name: security-audit
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
@@ -127,11 +126,35 @@ jobs:
       - name: Scan Dependencies for Known CVE Vulnerabilities
         run: pip-audit -r requirements.txt
 
+  smoke-test:
+    name: smoke-test
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Smoke Test Docker Deployment
+        run: |
+          docker compose up -d --build
+          for i in {1..30}; do
+            if curl -s -f http://localhost:8000/health | grep -q "healthy"; then
+              echo "Smoke test passed: Service responded healthy in $i seconds."
+              docker compose down
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Smoke test failed: Service did not respond within 30 seconds."
+          docker compose logs
+          docker compose down
+          exit 1
+
   deploy:
-    name: Deploy Production Service (Container & Release)
+    name: deploy
     environment: production
     runs-on: ubuntu-latest
-    needs: [test, security-audit]
+    needs: [test, security-audit, smoke-test]
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
@@ -150,4 +173,3 @@ jobs:
         run: |
           echo "Production deployment verification completed successfully."
           echo "Container ready for Kubernetes / Cloud Run deployment."
-

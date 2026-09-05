@@ -114,6 +114,25 @@ class TestRegexExtractor:
         assert result.moneda == "BRL"
         assert result.estado == "success"
 
+    def test_swiss_invoice_extraction(self):
+        text = """
+        HELVETIA CONSULTING AG
+        CHE-109.876.543 MWST
+        Rechnung Nr.: CH-2024-88
+        Datum: 25.08.2024
+        Nettobetrag: 2.000,00
+        MWST 8.1%: 162,00
+        Gesamtbetrag: 2.162,00 CHF
+        """
+        result = RegexExtractor.extract(text, "suiza.pdf")
+        assert result.numero_factura == "CH-2024-88"
+        assert "109.876.543" in result.id_fiscal_proveedor
+        assert result.subtotal == 2000.00
+        assert result.impuestos == 162.00
+        assert result.total == 2162.00
+        assert result.moneda == "CHF"
+        assert result.estado == "success"
+
     def test_reconciliation_calculates_missing_tax(self):
         """Si falta el impuesto explícito pero hay Subtotal y Total, calcula impuestos = Total - Subtotal."""
         text = """

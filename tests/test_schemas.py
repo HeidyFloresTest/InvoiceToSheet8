@@ -21,6 +21,8 @@ def test_invoice_data_defaults():
     assert inv.moneda == "USD"
     assert inv.estado == "success"
     assert inv.id is not None
+    assert inv.confidence_score == 1.0
+    assert inv.processed_at is None
 
 
 def test_invoice_data_custom_values():
@@ -38,10 +40,22 @@ def test_invoice_data_custom_values():
         nombre_archivo_origen="factura.pdf",
         estado="warning",
         metodo_extraccion="ocr",
+        confidence_score=0.88,
+        processed_at="2026-10-26T21:00:00Z",
     )
     assert inv.total == 116.58
     assert inv.moneda == "MXN"
     assert inv.metodo_extraccion == "ocr"
+    assert inv.confidence_score == 0.88
+    assert inv.processed_at == "2026-10-26T21:00:00Z"
+
+
+def test_invoice_data_confidence_score_validation():
+    """Valida que confidence_score esté acotado entre 0.0 y 1.0."""
+    with pytest.raises(ValidationError):
+        InvoiceData(nombre_archivo_origen="test.pdf", confidence_score=1.5)
+    with pytest.raises(ValidationError):
+        InvoiceData(nombre_archivo_origen="test.pdf", confidence_score=-0.1)
 
 
 def test_invoice_data_missing_required_filename():

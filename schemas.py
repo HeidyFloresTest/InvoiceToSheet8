@@ -54,6 +54,16 @@ class InvoiceData(BaseModel):
     metodo_extraccion: str = Field(
         default="regex", description="Método que extrajo la información (regex, ocr, llm, manual)"
     )
+    confidence_score: float = Field(
+        default=1.0,
+        ge=0.0,
+        le=1.0,
+        description="Puntaje de confianza en la extracción (0.0 a 1.0)",
+    )
+    processed_at: str | None = Field(
+        default=None,
+        description="Marca de tiempo ISO-8601 del momento en que se procesó el archivo",
+    )
 
 
 class BatchExtractResponse(BaseModel):

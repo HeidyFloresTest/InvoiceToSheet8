@@ -126,18 +126,21 @@ source venv/bin/activate
 ```
 
 ### 3. Instalar dependencias con bloqueo estricto (Reproducibilidad Garantizada)
-El repositorio incluye tanto `uv.lock` como `requirements.lock.txt` como fuentes de verdad para garantizar instalaciones 100% reproducibles y deterministas desde un clon limpio:
+El repositorio incluye los lockfiles oficiales (`uv.lock` y `poetry.lock`) como fuentes de verdad para garantizar instalaciones 100% reproducibles y deterministas desde un clon limpio:
 
 Con `uv` (Recomendado, ultra-rápido):
 ```bash
 uv sync
 ```
 
+Con `poetry`:
+```bash
+poetry install
+```
+
 O con `pip` tradicional:
 ```bash
 pip install -r requirements-dev.txt
-# O para producción con hashes exactos:
-pip install -r requirements.lock.txt
 ```
 
 ### 4. Configurar variables de entorno (Opcional)

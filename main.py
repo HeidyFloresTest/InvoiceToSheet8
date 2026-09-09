@@ -37,6 +37,7 @@ from schemas import (
 
 logger = setup_logger("InvoiceToSheetServer")
 
+
 def init_sentry() -> bool:
     """Inicializa Sentry SDK condicionalmente si SENTRY_DSN está presente en el entorno."""
     dsn = os.getenv("SENTRY_DSN")
@@ -61,7 +62,7 @@ MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024
 app = FastAPI(
     title="InvoiceToSheet API",
     description="Microservicio de extracción contable inteligente y consolidación en Excel.",
-    version="1.3.0",
+    version="1.3.1",
     docs_url="/docs",
     redoc_url="/redoc",
 )

@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.1] - 2026-10-26
+
+### Added
+- **Typed Domain Exception Hierarchy:** Created `extractor/exceptions.py` with `InvoiceExtractionError` base and specialized subclasses (`CorruptedPdfError`, `OcrUnavailableError`, `LlmFallbackError`, `InvalidInvoiceFormatError`, `PayloadTooLargeError`).
+- **Standardized API Error Mapping:** Connected FastAPI exception handlers to map typed exceptions directly into `ErrorDetail` JSON model responses with structured HTTP status codes.
+- **Hermetic Test Environment Fixture:** Added autouse `hermetic_env_defaults` fixture in `tests/conftest.py` ensuring tests run completely offline without external network or API keys.
+- **Sentry Conditional Initialization Verification:** Encapsulated Sentry setup in `main.init_sentry` with end-to-end tests in `tests/test_observability_sentry.py` confirming initialization only triggers when `SENTRY_DSN` is set.
+- **Architecture Deep-Dive Documentation:** Expanded `docs/ARCHITECTURE.md` with Section 5.1 (Sentry telemetry flow) and Section 5.2 (`/api/metrics` JSON vs `/metrics` Prometheus exposition).
+- **International Currency & Tax Expansion:** Added Swiss Franc (`CHF`), German `Rechnung` keywords, and Swiss `CHE` UID tax ID pattern recognition in `extractor/engine.py` with unit tests.
+- **Metadata Fields in Data Contract:** Added `confidence_score` and `processed_at` timestamp fields in `schemas.InvoiceData` with validation tests.
+- **Docker Compose Smoke-Test in CI:** Added dedicated `smoke-test` job in `.github/workflows/ci.yml` verifying `/health` within 30 seconds of container boot.
+- **Contributing Governance Standards:** Extended `CONTRIBUTING.md` with explicit Atomic Commits & Test Pairing Policy.
+
 ## [1.3.0] - 2026-10-26
 
 ### Refactored

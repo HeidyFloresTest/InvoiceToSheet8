@@ -25,7 +25,9 @@ class InvoiceExtractionError(Exception):
 class CorruptedPdfError(InvoiceExtractionError):
     """Se lanza cuando los bytes del PDF son inválidos o están corruptos."""
 
-    def __init__(self, message: str = "El archivo PDF está corrupto o no contiene páginas legibles"):
+    def __init__(
+        self, message: str = "El archivo PDF está corrupto o no contiene páginas legibles"
+    ):
         super().__init__(message, code="CORRUPTED_PDF")
 
 

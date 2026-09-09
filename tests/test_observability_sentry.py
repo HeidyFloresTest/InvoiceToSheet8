@@ -91,4 +91,3 @@ def test_sentry_init_called_only_when_dsn_set(monkeypatch):
             traces_sample_rate=0.1,
             send_default_pii=False,
         )
-

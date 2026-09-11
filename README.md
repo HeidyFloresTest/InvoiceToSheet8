@@ -1,10 +1,10 @@
 # InvoiceToSheet 📄 ➔ 📊
 
-[![CI Pipeline](https://github.com/HeidyFloresTest/InvoiceToSheet6/actions/workflows/ci.yml/badge.svg)](https://github.com/HeidyFloresTest/InvoiceToSheet6/actions/workflows/ci.yml)
+[![CI Pipeline](https://github.com/HeidyFloresTest/InvoiceToSheet8/actions/workflows/ci.yml/badge.svg)](https://github.com/HeidyFloresTest/InvoiceToSheet8/actions/workflows/ci.yml)
 [![Python Versions](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![Coverage: 94%](https://img.shields.io/badge/coverage-94%25-brightgreen.svg)](https://github.com/HeidyFloresTest/InvoiceToSheet6)
+[![Coverage: 94%](https://img.shields.io/badge/coverage-94%25-brightgreen.svg)](https://github.com/HeidyFloresTest/InvoiceToSheet8)
 [![Docker Ready](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
 
 **InvoiceToSheet** es un microservicio y aplicación web moderna de alta resiliencia diseñada para la extracción contable automatizada desde facturas y comprobantes en formato PDF (digitales o escaneados) y su consolidación directa en planillas Excel (`.xlsx`) profesionales con tipos de datos nativos, formato de moneda y fórmulas contables.
@@ -108,8 +108,8 @@ docker compose down
 
 ### 1. Clonar el repositorio
 ```bash
-git clone https://github.com/HeidyFloresTest/InvoiceToSheet6.git
-cd InvoiceToSheet6
+git clone https://github.com/HeidyFloresTest/InvoiceToSheet8.git
+cd InvoiceToSheet8
 ```
 
 ### 2. Crear y activar entorno virtual

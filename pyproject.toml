@@ -66,7 +66,10 @@ pythonpath = ["."]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
-addopts = "-v --strict-markers --cov=. --cov-report=term-missing --cov-report=xml"
+markers = [
+    "integration: mark test as integration test requiring external binaries like tesseract or poppler",
+]
+addopts = "-v --strict-markers -m 'not integration' --cov=. --cov-report=term-missing --cov-report=xml"
 asyncio_mode = "auto"
 filterwarnings = [
     "ignore::DeprecationWarning",

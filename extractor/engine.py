@@ -38,18 +38,18 @@ class RegexExtractor:
     }
 
     PATTERNS_TOTAL = [
-        r"(?:total\s*(?:a\s*pagar|general|factura|comprobante)?|importe\s*total|grand\s*total|monto\s*total|gesamtbetrag)\s*[:=]?\s*([$€£R\$\sS/\.CHF]*(?:[0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,2})?))",
-        r"(?:\bTOTAL\b)\s*[:=]?\s*([$€£R\$\sS/\.CHF]*(?:[0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,2})?))",
+        r"(?:total\s*(?:a\s*pagar|general|factura|comprobante)?|importe\s*total|grand\s*total|monto\s*total|gesamtbetrag)\s*[:=]?\s*([$€£¥R\$\sS/\.CHF]*(?:[0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,2})?))",
+        r"(?:\bTOTAL\b)\s*[:=]?\s*([$€£¥R\$\sS/\.CHF]*(?:[0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,2})?))",
     ]
 
     PATTERNS_SUBTOTAL = [
-        r"(?:subtotal|sub-total|sub\s*total|base\s*imponible|base\s*gravada|importe\s*neto|neto|nettobetrag)\s*[:=]?\s*([$€£R\$\sS/\.CHF]*(?:[0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,2})?))",
-        r"(?:\bSUBTOTAL\b)\s*[:=]?\s*([$€£R\$\sS/\.CHF]*(?:[0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,2})?))",
+        r"(?:subtotal|sub-total|sub\s*total|base\s*imponible|base\s*gravada|importe\s*neto|neto|nettobetrag)\s*[:=]?\s*([$€£¥R\$\sS/\.CHF]*(?:[0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,2})?))",
+        r"(?:\bSUBTOTAL\b)\s*[:=]?\s*([$€£¥R\$\sS/\.CHF]*(?:[0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,2})?))",
     ]
 
     PATTERNS_TAXES = [
-        r"(?:i\.?v\.?a\.?|impuesto(?:s)?|vat|igv|tax|mwst|tva)\s*(?:\(?\d{1,2}(?:\.\d)?%?\)?\s*)?[:=]?\s*([$€£R\$\sS/\.]*(?:[0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,2})?))",
-        r"(?:16%|21%|20%|19%|18%|8\.1%|7\.7%)\s*[:=]?\s*([$€£R\$\sS/\.]*(?:[0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,2})?))",
+        r"(?:i\.?v\.?a\.?|impuesto(?:s)?|vat|igv|tax|mwst|tva)\s*(?:\(?\d{1,2}(?:\.\d)?%?\)?\s*)?[:=]?\s*([$€£¥R\$\sS/\.CHF]*(?:[0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,2})?))",
+        r"(?:16%|21%|20%|19%|18%|8\.1%|7\.7%|10%)\s*[:=]?\s*([$€£¥R\$\sS/\.CHF]*(?:[0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,2})?))",
     ]
 
     CURRENCY_INDICATORS = {
@@ -63,6 +63,9 @@ class RegexExtractor:
         "BRL": ["BRL", "R$", "REAIS", "REALES"],
         "GBP": ["GBP", "£", "POUNDS", "LIBRAS"],
         "CHF": ["CHF", "FRANCOS SUIZOS", "SWISS FRANCS"],
+        "JPY": ["JPY", "¥", "YEN", "YENES"],
+        "CAD": ["CAD", "C$", "CANADIAN DOLLARS"],
+        "AUD": ["AUD", "A$", "AUSTRALIAN DOLLARS"],
     }
 
     @classmethod

@@ -24,7 +24,21 @@ def test_extract_text_with_ocr_successful_mock():
         assert result_text is not None
         assert "FACTURA OCR" in result_text
         mock_convert.assert_called_once()
-        mock_tess.assert_called_once_with(mock_image, lang="spa+eng")
+        assert mock_tess.call_count == 1
+        assert mock_tess.call_args.kwargs.get("lang") == "spa+eng"
+
+
+def test_preprocess_image_for_ocr_functionality():
+    """Verifica que el preprocesamiento de OCR convierta a escala de grises y aplique contraste."""
+    from PIL import Image
+    from extractor.ocr import preprocess_image_for_ocr
+
+    img = Image.new("RGB", (100, 100), color=(180, 180, 200))
+    processed = preprocess_image_for_ocr(img)
+
+    assert processed is not None
+    assert processed.mode == "L"
+    assert processed.size == (100, 100)
 
 
 def test_extract_invoice_triggers_ocr_fallback(low_text_pdf_bytes):

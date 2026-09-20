@@ -188,3 +188,26 @@ def test_prometheus_metrics_endpoint(client):
     assert "# HELP invoicetosheet_http_requests_total" in body
     assert "# TYPE invoicetosheet_http_requests_total counter" in body
     assert "invoicetosheet_uptime_seconds" in body
+
+
+def test_list_invoices_paginated_with_filter(client, sample_pdf_bytes):
+    """Verifica el endpoint GET /api/invoices con paginación formal (page, page_size) y filtrado de estado."""
+    files = [("files", ("factura_paginacion.pdf", sample_pdf_bytes, "application/pdf"))]
+    res_extract = client.post("/api/extract", files=files)
+    assert res_extract.status_code == 200
+
+    res = client.get("/api/invoices?page=1&page_size=2")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["page"] == 1
+    assert data["page_size"] == 2
+    assert "total_pages" in data
+    assert "total_items" in data
+    assert len(data["invoices"]) <= 2
+
+    res_success = client.get("/api/invoices?status=success")
+    assert res_success.status_code == 200
+    success_data = res_success.json()
+    assert success_data["status_filter"] == "success"
+    for item in success_data["invoices"]:
+        assert item["estado"] == "success"

@@ -115,3 +115,14 @@ class InvoiceHistoryResponse(BaseModel):
     skip: int
     limit: int
     invoices: list[InvoiceHistoryItem]
+
+
+class PaginatedInvoicesResponse(BaseModel):
+    """Respuesta con paginación formal y metadatos de navegación para facturas."""
+
+    page: int
+    page_size: int
+    total_pages: int
+    total_items: int
+    status_filter: str | None = None
+    invoices: list[InvoiceHistoryItem]

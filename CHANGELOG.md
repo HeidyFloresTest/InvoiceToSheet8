@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2026-10-26
+
+### Added
+- **API Pagination and Status Filtering:** Added `GET /api/invoices` endpoint in `main.py` with full query parameters (`page`, `page_size`, `status`) and structured `PaginatedInvoicesResponse` metadata in `schemas.py`.
+- **Adaptive Contrast OCR Preprocessing:** Introduced `preprocess_image_for_ocr` in `extractor/ocr.py` utilizing PIL grayscale conversion, autocontrast, and dynamic contrast enhancement to improve character legibility on low-contrast document scans.
+- **Hermetic Pure-Mock OCR Test Suite:** Marked real tesseract execution with `@pytest.mark.integration` and added `test_pure_mock_ocr_pipeline_execution` in `tests/test_extractor_ocr.py`, excluding the integration marker from default CI pytest runs.
+- **International Multi-Currency Support (JPY, GBP, CAD, AUD):** Added support for Japanese Yen (`JPY`, `¥`), British Pound (`GBP`, `£`), Canadian Dollar (`CAD`), Australian Dollar (`AUD`), and zero-decimal integer normalizers in `extractor/engine.py` and `extractor/normalizers.py`.
+- **Unified Dependency Manifest in PEP 621:** Eliminated redundant `[tool.poetry.dependencies]` in favor of standard PEP 621 `[project.dependencies]`, with fully synchronized `uv.lock` and `poetry.lock` files.
+- **Weekly Dependabot Automation:** Added weekly automation scan for pip and github-actions ecosystems in `.github/dependabot.yml`.
+
 ## [1.3.1] - 2026-10-26
 
 ### Added

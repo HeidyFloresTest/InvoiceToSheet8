@@ -31,6 +31,7 @@ def test_extract_text_with_ocr_successful_mock():
 def test_preprocess_image_for_ocr_functionality():
     """Verifica que el preprocesamiento de OCR convierta a escala de grises y aplique contraste."""
     from PIL import Image
+
     from extractor.ocr import preprocess_image_for_ocr
 
     img = Image.new("RGB", (100, 100), color=(180, 180, 200))

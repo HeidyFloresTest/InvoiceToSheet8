@@ -6,6 +6,8 @@ We provide security updates and patches for the following versions of **InvoiceT
 
 | Version | Supported          |
 | ------- | ------------------ |
+| 1.4.x   | :white_check_mark: |
+| 1.3.x   | :white_check_mark: |
 | 1.2.x   | :white_check_mark: |
 | 1.1.x   | :white_check_mark: |
 | 1.0.x   | :x:                |
@@ -55,3 +57,16 @@ The InvoiceToSheet engineering team takes product security seriously. If you bel
 4. **Continuous Dependency Auditing:**
    - Automated GitHub Actions CI workflow runs `pip-audit` to detect known CVEs in locked dependencies.
    - Dependabot configured for automated weekly vulnerability patches with an active PR ceiling.
+
+---
+
+## Threat Model & Trust Boundaries
+
+The InvoiceToSheet microservice defines four distinct trust boundaries based on STRIDE threat modeling principles:
+
+| Trust Boundary | Threat Vector Analyzed | Mitigations Implemented in Code |
+| :--- | :--- | :--- |
+| **1. Multipart File Ingestion** | Decompression bombs, memory exhaustion, malformed PDF structures | - Strict 25MB file size limit enforced prior to stream consumption.<br>- In-memory byte streaming via `pdfplumber` (zero disk write).<br>- Isolated exception handling returning typed `CorruptedPdfError`. |
+| **2. External Credentials** | Accidental API key leakage via stack traces or error logs | - `OPENAI_API_KEY` and `SENTRY_DSN` loaded via environment.<br>- Automated regex masking in `ObservabilityAndSecurityMiddleware`.<br>- Dummy fallback fixture ensuring hermetic offline test execution. |
+| **3. Database Persistence** | SQL injection, data corruption, unauthorized table modifications | - Declarative SQLAlchemy 2.0 ORM with parameterized SQL queries.<br>- Pydantic v2 input schema validation before persistence.<br>- SQLite / PostgreSQL transaction rollback on failure. |
+| **4. Excel Export Boundary** | Formula injection (DDE attacks) via invoice text fields | - Openpyxl cell value sanitization preventing leading `=,+,-,@` formulas.<br>- Typed float formatting for numeric amount cells.<br>- Dynamic SUM formulas restricted strictly to calculated summary rows. |

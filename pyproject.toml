@@ -54,7 +54,7 @@ include = ["extractor*"]
 exclude = ["static*", "facturas_ejemplo*", "tests*"]
 
 [tool.setuptools]
-py-modules = ["main", "schemas", "database", "excel_generator", "observability"]
+py-modules = ["main", "schemas", "database", "excel_generator", "observability", "config"]
 
 
 # -------------------------------------------------------------

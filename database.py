@@ -5,17 +5,17 @@ Utiliza SQLAlchemy con SQLite para registrar el histórico de facturas procesada
 
 from __future__ import annotations
 
-import os
 from collections.abc import Generator
 from datetime import datetime
 
 from sqlalchemy import Column, DateTime, Float, Integer, String, create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
+from config import settings
 from schemas import InvoiceData
 
-# Ruta de la base de datos SQLite (configurable vía variable de entorno)
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./invoices.db")
+# Ruta de la base de datos (inyección tipada vía Settings)
+DATABASE_URL = settings.database_url
 
 engine = create_engine(
     DATABASE_URL,

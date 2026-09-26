@@ -13,6 +13,7 @@ from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, Str
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 
+from config import Settings
 from database import InvoiceRepository, get_db, init_db
 from excel_generator import generate_invoice_excel
 from extractor import (
@@ -41,7 +42,7 @@ logger = setup_logger("InvoiceToSheetServer")
 
 def init_sentry() -> bool:
     """Inicializa Sentry SDK condicionalmente si SENTRY_DSN está presente en el entorno."""
-    dsn = os.getenv("SENTRY_DSN")
+    dsn = Settings.load().sentry_dsn
     if dsn and dsn.strip():
         sentry_sdk.init(
             dsn=dsn.strip(),

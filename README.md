@@ -242,6 +242,8 @@ mypy .
 - **Política de Seguridad:** Lineamientos de divulgación responsable y SLA de respuesta en [SECURITY.md](SECURITY.md).
 - **Código de Conducta:** Consulta nuestro compromiso comunitario en [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
 - **Monitoreo de Excepciones en Producción (Sentry):** Integración nativa con `sentry-sdk[fastapi]`. Configura la variable `SENTRY_DSN` en tu entorno o `.env` para captura automática de trazas de error en tiempo real (si no está definida, opera como *no-op* sin interrumpir el servicio).
+- **Migraciones de Base de Datos (Alembic):** Control de versiones transaccional del esquema de base de datos relacional. Ejecuta `alembic upgrade head` para sincronizar cambios de forma determinista y sin riesgo de deriva de esquema (*schema drift*).
+- **Gestión Segura de Secretos en Producción:** Las credenciales (`DATABASE_URL`, `OPENAI_API_KEY`, `SENTRY_DSN`) se inyectan estrictamente vía Secret Managers (HashiCorp Vault, AWS Secrets Manager o Docker Secrets) y son validadas en el arranque por `config.Settings`.
 - **Trazabilidad:** Cada petición genera un identificador único `X-Request-ID` que se propaga a los logs estructurados JSON para auditoría.
 - **Resiliencia ante Fallos:** Si un archivo dentro de un lote está dañado o protegido con contraseña, el sistema aísla el error y procesa el resto sin interrupciones.
 - **Protección de Datos:** Ningún comprobante ni archivo Excel se almacena en el disco duro del servidor; todo el procesamiento ocurre estrictamente en memoria (`io.BytesIO`).

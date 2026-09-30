@@ -89,6 +89,10 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements-dev.txt
 
+      - name: Verify Database Migrations (Alembic)
+        run: |
+          DATABASE_URL="sqlite:///./test_migration.db" alembic upgrade head
+
       - name: Run tests
         run: |
           pytest --cov=. --cov-report=term-missing --cov-report=xml
@@ -126,8 +130,8 @@ jobs:
       - name: Scan Dependencies for Known CVE Vulnerabilities
         run: pip-audit -r requirements.txt
 
-  smoke-test:
-    name: smoke-test
+  fresh-clone-smoke:
+    name: fresh-clone-smoke
     runs-on: ubuntu-latest
     needs: [test]
     steps:
@@ -154,7 +158,7 @@ jobs:
     name: deploy
     environment: production
     runs-on: ubuntu-latest
-    needs: [test, security-audit, smoke-test]
+    needs: [test, security-audit, fresh-clone-smoke]
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4

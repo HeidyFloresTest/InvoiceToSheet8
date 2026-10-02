@@ -1,29 +1,26 @@
+import os
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config
-from sqlalchemy import pool
+from sqlalchemy import engine_from_config, pool
 
 from alembic import context
+from config import settings
+from database import Base
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
 
 # Interpret the config file for Python logging.
-# This line sets up loggers basically.
 if config.config_file_name is not None:
-    fileConfig(config.config_file_name)
-
-from config import settings
-from database import Base
+    fileConfig(config.config_file_name, disable_existing_loggers=False)
 
 target_metadata = Base.metadata
-config.set_main_option("sqlalchemy.url", settings.database_url)
 
-# other values from the config, defined by the needs of env.py,
-# can be acquired:
-# my_important_option = config.get_main_option("my_important_option")
-# ... etc.
+configured_url = config.get_main_option("sqlalchemy.url")
+if not configured_url or configured_url == "driver://user:pass@localhost/dbname":
+    resolved_url = os.environ.get("DATABASE_URL") or settings.database_url
+    config.set_main_option("sqlalchemy.url", resolved_url)
 
 
 def run_migrations_offline() -> None:
@@ -57,17 +54,21 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
-    connectable = engine_from_config(
-        config.get_section(config.config_ini_section, {}),
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
-
-    with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
+    connectable = context.config.attributes.get("connection", None)
+    if connectable is None:
+        engine = engine_from_config(
+            config.get_section(config.config_ini_section, {}),
+            prefix="sqlalchemy.",
+            poolclass=pool.NullPool,
         )
+        with engine.connect() as connection:
+            context.configure(connection=connection, target_metadata=target_metadata)
 
+            with context.begin_transaction():
+                context.run_migrations()
+        engine.dispose()
+    else:
+        context.configure(connection=connectable, target_metadata=target_metadata)
         with context.begin_transaction():
             context.run_migrations()
 

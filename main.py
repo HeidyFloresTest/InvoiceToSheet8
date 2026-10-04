@@ -25,6 +25,7 @@ from extractor import (
 from observability import (
     ErrorDetail,
     ObservabilityAndSecurityMiddleware,
+    error_tracker,
     metrics,
     setup_logger,
 )
@@ -64,7 +65,7 @@ MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024
 app = FastAPI(
     title="InvoiceToSheet API",
     description="Microservicio de extracción contable inteligente y consolidación en Excel.",
-    version="1.4.0",
+    version="1.4.1",
     docs_url="/docs",
     redoc_url="/redoc",
 )
@@ -95,6 +96,13 @@ app.add_middleware(
 async def invoice_extraction_error_handler(request: Request, exc: InvoiceExtractionError):
     """Mapea excepciones tipadas de dominio a respuestas JSON estructuradas con ErrorDetail."""
     request_id = getattr(request.state, "request_id", None)
+    error_tracker.record_error(
+        code=exc.code,
+        message=exc.message,
+        request_id=request_id,
+        details=exc.details or None,
+        exc=exc,
+    )
     error_detail = ErrorDetail(
         code=exc.code,
         message=exc.message,
@@ -107,6 +115,31 @@ async def invoice_extraction_error_handler(request: Request, exc: InvoiceExtract
     elif exc.code in ("OCR_UNAVAILABLE", "LLM_FALLBACK_ERROR"):
         status_code = status.HTTP_502_BAD_GATEWAY
     return JSONResponse(status_code=status_code, content=error_detail.model_dump())
+
+
+@app.get(
+    "/api/errors/summary",
+    tags=["Observabilidad"],
+    summary="Resumen de auditoría de errores estructurados",
+)
+async def get_error_summary():
+    """Retorna un resumen cuantitativo de errores capturados en tiempo de ejecución categorizados por código y tipo."""
+    return error_tracker.get_summary()
+
+
+@app.get(
+    "/api/errors/recent",
+    tags=["Observabilidad"],
+    summary="Lista de errores recientes capturados en el buffer de telemetría",
+)
+async def get_recent_errors(
+    limit: int = Query(
+        default=50, ge=1, le=200, description="Cantidad máxima de errores a retornar"
+    ),
+    code: str | None = Query(default=None, description="Filtrar por código de error específico"),
+):
+    """Retorna los registros de error más recientes con correlation IDs y detalles contextuales."""
+    return error_tracker.get_recent(limit=limit, code=code)
 
 
 # Rutas de archivos estáticos
@@ -198,6 +231,12 @@ async def extract_invoices(
             format_err = InvalidInvoiceFormatError(
                 f"Formato no soportado para '{filename}'. Debe ser un archivo .pdf."
             )
+            error_tracker.record_error(
+                code=format_err.code,
+                message=format_err.message,
+                details={"filename": filename},
+                exc=format_err,
+            )
             results.append(
                 InvoiceData(
                     nombre_archivo_origen=filename,
@@ -215,6 +254,12 @@ async def extract_invoices(
             if len(content) > MAX_FILE_SIZE_BYTES:
                 size_err = PayloadTooLargeError(
                     f"El archivo '{filename}' excede el tamaño máximo permitido de {MAX_FILE_SIZE_BYTES // (1024 * 1024)}MB."
+                )
+                error_tracker.record_error(
+                    code=size_err.code,
+                    message=size_err.message,
+                    details={"filename": filename},
+                    exc=size_err,
                 )
                 results.append(
                     InvoiceData(

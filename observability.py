@@ -10,7 +10,9 @@ import json
 import logging
 import time
 import uuid
+from collections import deque
 from datetime import datetime
+from threading import Lock
 from typing import Any
 
 from fastapi import Request, Response
@@ -28,6 +30,81 @@ class ErrorDetail(BaseModel):
     timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
     request_id: str | None = None
     details: dict[str, Any] | None = None
+
+
+class ErrorRecord(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    code: str = Field(..., description="Código de error estandarizado")
+    message: str = Field(..., description="Mensaje explicativo del error")
+    timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
+    request_id: str | None = None
+    exception_type: str | None = None
+    details: dict[str, Any] | None = None
+
+
+class StructuredErrorTracker:
+    """
+    Rastreador de errores estructurado en memoria con buffer circular seguro para hilos.
+    Permite telemetría operativa en tiempo de ejecución independiente de proveedores externos.
+    """
+
+    def __init__(self, maxlen: int = 200) -> None:
+        self._lock = Lock()
+        self._recent_errors: deque[ErrorRecord] = deque(maxlen=maxlen)
+        self._counts_by_code: dict[str, int] = {}
+        self._counts_by_type: dict[str, int] = {}
+        self._total_recorded: int = 0
+
+    def record_error(
+        self,
+        code: str,
+        message: str,
+        request_id: str | None = None,
+        details: dict[str, Any] | None = None,
+        exc: Exception | None = None,
+    ) -> ErrorRecord:
+        record = ErrorRecord(
+            code=code,
+            message=message,
+            request_id=request_id,
+            exception_type=type(exc).__name__ if exc else None,
+            details=details,
+        )
+        with self._lock:
+            self._recent_errors.append(record)
+            self._counts_by_code[code] = self._counts_by_code.get(code, 0) + 1
+            if record.exception_type:
+                self._counts_by_type[record.exception_type] = (
+                    self._counts_by_type.get(record.exception_type, 0) + 1
+                )
+            self._total_recorded += 1
+        return record
+
+    def get_recent(self, limit: int = 50, code: str | None = None) -> list[dict[str, Any]]:
+        with self._lock:
+            records = list(self._recent_errors)
+        if code:
+            records = [r for r in records if r.code == code]
+        return [r.model_dump() for r in reversed(records[-limit:])]
+
+    def get_summary(self) -> dict[str, Any]:
+        with self._lock:
+            return {
+                "total_recorded": self._total_recorded,
+                "current_buffer_size": len(self._recent_errors),
+                "counts_by_code": dict(self._counts_by_code),
+                "counts_by_type": dict(self._counts_by_type),
+            }
+
+    def clear(self) -> None:
+        with self._lock:
+            self._recent_errors.clear()
+            self._counts_by_code.clear()
+            self._counts_by_type.clear()
+            self._total_recorded = 0
+
+
+error_tracker = StructuredErrorTracker()
 
 
 class SystemMetrics:

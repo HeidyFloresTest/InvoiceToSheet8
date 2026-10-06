@@ -37,19 +37,22 @@ class RegexExtractor:
         "GENERIC": r"(?:R\.?F\.?C\.?|R\.?U\.?T\.?|N\.?I\.?F\.?|C\.?I\.?F\.?|R\.?U\.?C\.?|NIT|Tax\s*ID|VAT\s*(?:No|ID)?|UID|CHE)\s*[:#\-\s]*([A-Z0-9\.\-]{6,20})\b",
     }
 
+    # Patrón base reutilizable para capturar importes monetarios en diversos formatos internacionales
+    _AMOUNT_REGEX = r"([$€£¥R\$\sS/\.CHF]*(?:[0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,2})?))"
+
     PATTERNS_TOTAL = [
-        r"(?:total\s*(?:a\s*pagar|general|factura|comprobante)?|importe\s*total|grand\s*total|monto\s*total|gesamtbetrag)\s*[:=]?\s*([$€£¥R\$\sS/\.CHF]*(?:[0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,2})?))",
-        r"(?:\bTOTAL\b)\s*[:=]?\s*([$€£¥R\$\sS/\.CHF]*(?:[0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,2})?))",
+        rf"(?:total\s*(?:a\s*pagar|general|factura|comprobante)?|importe\s*total|grand\s*total|monto\s*total|gesamtbetrag)\s*[:=]?\s*{_AMOUNT_REGEX}",
+        rf"(?:\bTOTAL\b)\s*[:=]?\s*{_AMOUNT_REGEX}",
     ]
 
     PATTERNS_SUBTOTAL = [
-        r"(?:subtotal|sub-total|sub\s*total|base\s*imponible|base\s*gravada|importe\s*neto|neto|nettobetrag)\s*[:=]?\s*([$€£¥R\$\sS/\.CHF]*(?:[0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,2})?))",
-        r"(?:\bSUBTOTAL\b)\s*[:=]?\s*([$€£¥R\$\sS/\.CHF]*(?:[0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,2})?))",
+        rf"(?:subtotal|sub-total|sub\s*total|base\s*imponible|base\s*gravada|importe\s*neto|neto|nettobetrag)\s*[:=]?\s*{_AMOUNT_REGEX}",
+        rf"(?:\bSUBTOTAL\b)\s*[:=]?\s*{_AMOUNT_REGEX}",
     ]
 
     PATTERNS_TAXES = [
-        r"(?:i\.?v\.?a\.?|impuesto(?:s)?|vat|igv|tax|mwst|tva)\s*(?:\(?\d{1,2}(?:\.\d)?%?\)?\s*)?[:=]?\s*([$€£¥R\$\sS/\.CHF]*(?:[0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,2})?))",
-        r"(?:16%|21%|20%|19%|18%|8\.1%|7\.7%|10%)\s*[:=]?\s*([$€£¥R\$\sS/\.CHF]*(?:[0-9]{1,3}(?:[.,\s][0-9]{3})+(?:[.,][0-9]{1,2})?|[0-9]+(?:[.,][0-9]{1,2})?))",
+        rf"(?:i\.?v\.?a\.?|impuesto(?:s)?|vat|igv|tax|mwst|tva)\s*(?:\(?\d{1, 2}(?:\.\d)?%?\)?\s*)?[:=]?\s*{_AMOUNT_REGEX}",
+        rf"(?:16%|21%|20%|19%|18%|8\.1%|7\.7%|10%)\s*[:=]?\s*{_AMOUNT_REGEX}",
     ]
 
     CURRENCY_INDICATORS = {

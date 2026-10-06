@@ -45,19 +45,19 @@ def test_extract_with_llm_rejects_placeholder_key():
         assert result is None
 
 
-def test_openai_api_key_redaction_in_logs(caplog):
+def test_openai_api_key_redaction_in_logs(caplog, monkeypatch):
     """Verifica que si OpenAI arroja una excepción con la clave, esta sea redactada en el log."""
+    import logging
+
+    caplog.set_level(logging.ERROR)
     sensitive_key = "sk-super-secret-key-12345678"
     mock_client = MagicMock()
     mock_client.beta.chat.completions.parse.side_effect = RuntimeError(
         f"Conexión rechazada para {sensitive_key}"
     )
 
+    monkeypatch.setenv("OPENAI_API_KEY", sensitive_key)
     with (
-        patch(
-            "os.getenv",
-            side_effect=lambda k, default=None: sensitive_key if k == "OPENAI_API_KEY" else default,
-        ),
         patch("extractor.llm.OPENAI_AVAILABLE", True),
         patch("extractor.llm.OpenAI", return_value=mock_client),
     ):

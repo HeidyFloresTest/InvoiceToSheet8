@@ -132,6 +132,15 @@ The service provides dual observability endpoints catering to distinct monitorin
 | **Scraping Overhead** | Minimal JSON serialization via Pydantic model | Zero-allocation string concatenation adhering to Prometheus exposition standard |
 | **Gauge Metrics** | `uptime_seconds` (float timestamp delta) | `invoicetosheet_uptime_seconds` (gauge) |
 
+### 5.3 In-Memory Structured Error Ledger (`observability.error_tracker`)
+
+To provide robust operational auditability in environments without external cloud telemetry accounts:
+1. **Thread-Safe Ring Buffer:** `StructuredErrorTracker` implements an in-memory `collections.deque(maxlen=200)` protected by a mutex lock.
+2. **Contextual Metadata:** Every tracked event includes a UUID, standard error code, human-readable message, UTC timestamp, `request_id`, exception class name, and arbitrary key-value details.
+3. **Dual Exposition Endpoints:**
+   - `GET /api/errors/summary`: Quantified error totals, active buffer volume, and counts partitioned by code and exception type.
+   - `GET /api/errors/recent?limit=50&code=...`: Filterable list of the latest error occurrences in reverse-chronological order.
+
 ---
 
 ## 6. Database Migrations with Alembic

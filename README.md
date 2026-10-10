@@ -189,10 +189,10 @@ main.py                      134     20    85%   114, 183, 233, 239-260, 269-270
 observability.py              90      2    98%   137, 189
 schemas.py                    56      0   100%
 --------------------------------------------------------
-TOTAL                        741     45    94%
+TOTAL                        874     54    94%
 Coverage XML written to file coverage.xml
-Required test coverage of 80.0% reached. Total coverage: 93.93%
-====================== 98 passed, 1 deselected in 9.04s =======================
+Required test coverage of 80.0% reached. Total coverage: 93.82%
+===================== 106 passed, 1 deselected in 11.63s ======================
 ```
 
 Para generar un reporte HTML interactivo de cobertura:
@@ -227,6 +227,8 @@ mypy .
 | `GET` | `/health` | Verificación de disponibilidad, versión activa y uptime del servicio. |
 | `GET` | `/metrics` | Telemetría estándar de Prometheus / OpenMetrics para scraping. |
 | `GET` | `/api/metrics` | Telemetría en tiempo real en formato JSON estructurado. |
+| `GET` | `/api/errors/summary` | Resumen de telemetría de errores estructurados en memoria categorizados por código y tipo. |
+| `GET` | `/api/errors/recent` | Consulta en buffer circular de errores recientes con IDs de correlación y detalles. |
 | `POST` | `/api/extract` | Procesamiento por lotes de comprobantes PDF (`multipart/form-data`). |
 | `POST` | `/api/export-excel` | Generación en memoria y descarga del archivo `.xlsx` consolidado. |
 | `GET` | `/api/invoices` | Listado paginado formal (page, page_size, total_pages) con filtrado opcional por estado. |
@@ -241,6 +243,7 @@ mypy .
 - **Arquitectura de Software:** Consulta el diseño detallado del pipeline, flujo de datos y diagramas de componentes en [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
 - **Política de Seguridad:** Lineamientos de divulgación responsable y SLA de respuesta en [SECURITY.md](SECURITY.md).
 - **Código de Conducta:** Consulta nuestro compromiso comunitario en [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+- **Rastreo de Errores Estructurados en Memoria:** `StructuredErrorTracker` mantiene un buffer circular thread-safe con auditoría de incidencias categorizadas por tipo y código sin dependencia forzada de servicios externos.
 - **Monitoreo de Excepciones en Producción (Sentry):** Integración nativa con `sentry-sdk[fastapi]`. Configura la variable `SENTRY_DSN` en tu entorno o `.env` para captura automática de trazas de error en tiempo real (si no está definida, opera como *no-op* sin interrumpir el servicio).
 - **Migraciones de Base de Datos (Alembic):** Control de versiones transaccional del esquema de base de datos relacional. Ejecuta `alembic upgrade head` para sincronizar cambios de forma determinista y sin riesgo de deriva de esquema (*schema drift*).
 - **Gestión Segura de Secretos en Producción:** Las credenciales (`DATABASE_URL`, `OPENAI_API_KEY`, `SENTRY_DSN`) se inyectan estrictamente vía Secret Managers (HashiCorp Vault, AWS Secrets Manager o Docker Secrets) y son validadas en el arranque por `config.Settings`.

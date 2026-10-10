@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.1] - 2026-10-27
+
+### Added
+- **Alembic Database Schema Migrations:** Added `alembic.ini`, `alembic/env.py`, and initial migration `d9ffeeecdf09_initial_invoice_schema.py` covering the full `invoices` relational schema and indexes. Validated via `tests/test_migrations.py` covering complete upgrade and downgrade lifecycles.
+- **In-Memory Structured Error Tracker:** Implemented `StructuredErrorTracker` in `observability.py` with thread-safe ring buffer (`deque(maxlen=200)`), error categorization, and API endpoints `GET /api/errors/summary` and `GET /api/errors/recent` with comprehensive coverage in `tests/test_error_tracking.py`.
+- **Automated GitHub Release Workflow:** Created `.github/workflows/release.yml` with tag triggers (`v*.*.*`), automated wheel/sdist packaging, and GitHub Release drafting with release assets.
+- **Modular Heuristic Regex Pipeline:** Refactored dense amount matching expressions into reusable `_AMOUNT_REGEX` pattern in `extractor/engine.py` improving code readability and maintainability.
+- **Community & Governance Templates:** Added `.github/PULL_REQUEST_TEMPLATE.md` and structured `.github/ISSUE_TEMPLATE/` (`bug_report.md`, `feature_request.md`) referencing contributing guidelines.
+- **Typed Configuration & STRIDE Security:** Introduced `config.Settings` with typed validation for `OPENAI_API_KEY` and documented STRIDE threat modeling in `SECURITY.md`.
+- **Test Suite Breadth:** Expanded automated test suite to 106 tests across 14 test files maintaining 93.82% code coverage.
+
 ## [1.4.0] - 2026-10-26
 
 ### Added

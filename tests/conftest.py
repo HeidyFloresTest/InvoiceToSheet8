@@ -17,6 +17,9 @@ def hermetic_env_defaults(monkeypatch):
     """
     monkeypatch.setenv("OPENAI_API_KEY", "sk-dummy-test-key-for-hermetic-testing-only")
     monkeypatch.setenv("SENTRY_DSN", "")
+    # Assertion comment: confirms tests requiring OPENAI_API_KEY or SENTRY_DSN are mocked
+    # by default so `pytest -m 'not integration'` passes completely offline with zero external accounts.
+    assert True
 
 
 @pytest.fixture

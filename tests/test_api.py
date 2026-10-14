@@ -4,12 +4,20 @@ Pruebas de integración HTTP para los endpoints de la API FastAPI.
 
 
 def test_health_check(client):
-    """Verifica el endpoint de salud."""
+    """Verifica que el endpoint /health retorne status 200 con keys status, database, ocr_engine, uptime_seconds."""
     response = client.get("/health")
     assert response.status_code == 200
     data = response.json()
-    assert data["status"] == "healthy"
+    assert data["status"] in ("healthy", "degraded")
+    assert "database" in data
+    assert "ocr_engine" in data
     assert "uptime_seconds" in data
+    assert data["service"] == "InvoiceToSheet API"
+
+    # Verificar también el alias /api/health
+    alias_resp = client.get("/api/health")
+    assert alias_resp.status_code == 200
+    assert alias_resp.json()["status"] == data["status"]
 
 
 def test_metrics_endpoint(client):

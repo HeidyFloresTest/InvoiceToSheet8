@@ -65,7 +65,7 @@ MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024
 app = FastAPI(
     title="InvoiceToSheet API",
     description="Microservicio de extracción contable inteligente y consolidación en Excel.",
-    version="1.4.1",
+    version="1.5.0",
     docs_url="/docs",
     redoc_url="/redoc",
 )
@@ -153,14 +153,46 @@ if not os.path.exists(STATIC_DIR):
 # =====================================================================
 
 
-@app.get("/health", tags=["Observabilidad"], summary="Verificación de salud del microservicio")
-async def health_check():
-    """Retorna el estado de disponibilidad del microservicio y métricas básicas de uptime."""
+@app.get(
+    "/health",
+    tags=["Observabilidad"],
+    summary="Verificación de salud y preparación del microservicio",
+)
+@app.get(
+    "/api/health",
+    tags=["Observabilidad"],
+    summary="Verificación de salud y preparación del microservicio (alias)",
+    include_in_schema=False,
+)
+async def health_check(db: Session = Depends(get_db)):
+    """Retorna el estado de disponibilidad del microservicio y chequeos de preparación (Base de datos y OCR)."""
     snapshot = metrics.get_snapshot()
+
+    # Verificación de conectividad activa con base de datos
+    db_status = "connected"
+    try:
+        repo = InvoiceRepository(db)
+        repo.count_total()
+    except Exception:
+        db_status = "disconnected"
+
+    # Verificación de disponibilidad del motor OCR
+    ocr_status = "available"
+    try:
+        from extractor.ocr import OCR_AVAILABLE
+
+        ocr_status = "available" if OCR_AVAILABLE else "degraded"
+    except Exception:
+        ocr_status = "degraded"
+
+    overall_status = "healthy" if db_status == "connected" else "degraded"
+
     return {
-        "status": "healthy",
+        "status": overall_status,
         "service": "InvoiceToSheet API",
         "version": app.version,
+        "database": db_status,
+        "ocr_engine": ocr_status,
         "uptime_seconds": snapshot["uptime_seconds"],
     }
 

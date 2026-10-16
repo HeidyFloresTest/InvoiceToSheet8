@@ -33,11 +33,33 @@ The InvoiceToSheet engineering team takes product security seriously. If you bel
 
 ---
 
+## Production Secret Provisioning & Key Rotation Protocol
+
+InvoiceToSheet enforces strict separation of code and configuration, adhering to Twelve-Factor App principles and zero-trust credential hygiene:
+
+### 1. Secret Manager Injection in Production
+Plain `.env` files are strictly prohibited in production and staging environments. All sensitive credentials must be injected dynamically at runtime via a centralized Secret Manager:
+
+| Credential | Provider Implementation Pattern | Rotation Cadence |
+| :--- | :--- | :--- |
+| `OPENAI_API_KEY` | Injected via **HashiCorp Vault**, **AWS Secrets Manager**, or **Docker Secrets** (`/run/secrets/openai_key`). | Every 90 days or immediately upon suspected compromise. |
+| `SENTRY_DSN` | Injected as environment variable from cloud platform metadata service (AWS SSM Parameter Store / GCP Secret Manager). | Annual or per environment lifecycle change. |
+| `DATABASE_URL` | Dynamic database credential leasing via HashiCorp Vault database secrets engine or AWS IAM RDS authentication. | Automated short-lived leases (24-hour TTL). |
+
+### 2. Zero-Downtime Secret Rotation Procedure
+1. **Provision Secondary Key:** Generate a new API token in the external provider dashboard (e.g., OpenAI API portal).
+2. **Update Secret Vault:** Store the updated secret under the versioned secret path in the Secrets Manager.
+3. **Rolling Service Restart:** Initiate a rolling restart of container tasks (`kubectl rollout restart` or `docker compose up -d`).
+4. **Health Verification:** Validate that `/health` returns `"status": "healthy"` and `"database": "connected"`.
+5. **Revoke Retired Key:** Permanently invalidate the deprecated credential in the provider portal.
+
+---
+
 ## Security Practices & Design Controls
 
 1. **Zero Secret Persistence:**
-   - Secrets (`OPENAI_API_KEY`, `SENTRY_DSN`, database credentials) are injected strictly via environment variables.
-   - No `.env` files are tracked in version control; `.env.example` provides non-sensitive defaults.
+   - Secrets are loaded into memory and validated by `config.Settings` at application startup.
+   - Malformed or truncated keys raise typed `ConfigurationError` immediately, failing fast before accepting traffic.
    - Automated secret redaction in logging middleware prevents leakage of credentials in error traces.
 
 2. **Input Sanitization & Boundary Validation:**

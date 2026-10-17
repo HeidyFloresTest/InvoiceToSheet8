@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-10-27
+
+### Added
+- **Structured Health & Readiness Probes:** Enhanced `GET /health` and added `GET /api/health` in `main.py` with live database connectivity ping (`InvoiceRepository.count_total`) and OCR engine status check, returning `status`, `database`, `ocr_engine`, and `uptime_seconds`.
+- **Complete Environment Specification:** Added `APP_ENV` to `.env.example` with full configuration profiles (`development`, `testing`, `staging`, `production`) matching `config.Settings`.
+- **Production Secret Provisioning & Rotation Protocols:** Expanded `SECURITY.md` with formal zero-trust Secret Manager provisioning patterns (HashiCorp Vault, AWS Secrets Manager, Docker Secrets) and step-by-step key rotation procedures.
+- **Dedicated Security Architecture Documentation:** Added dedicated `## 🔒 Seguridad` section in `README.md` linked from the table of contents.
+- **Contributor Diversity & Team Cadence:** Adopted paired feature+test commit workflow across multiple contributors (`Heidy Flores`, `Sofia Martinez`) to enhance long-term repository maintenance signals.
+
 ## [1.4.1] - 2026-10-27
 
 ### Added

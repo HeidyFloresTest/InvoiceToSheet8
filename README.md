@@ -1,10 +1,10 @@
 # InvoiceToSheet 📄 ➔ 📊
 
-[![CI Pipeline](https://github.com/HeidyFloresTest/InvoiceToSheet8/actions/workflows/ci.yml/badge.svg)](https://github.com/HeidyFloresTest/InvoiceToSheet8/actions/workflows/ci.yml)
+[![CI Pipeline](https://github.com/HeidyFloresTest/InvoiceToSheet9/actions/workflows/ci.yml/badge.svg)](https://github.com/HeidyFloresTest/InvoiceToSheet9/actions/workflows/ci.yml)
 [![Python Versions](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/astral-sh/ruff)
-[![Coverage: 94%](https://img.shields.io/badge/coverage-94%25-brightgreen.svg)](https://github.com/HeidyFloresTest/InvoiceToSheet8)
+[![Coverage: 94%](https://img.shields.io/badge/coverage-94%25-brightgreen.svg)](https://github.com/HeidyFloresTest/InvoiceToSheet9)
 [![Docker Ready](https://img.shields.io/badge/docker-ready-blue.svg)](https://www.docker.com/)
 
 **InvoiceToSheet** es un microservicio y aplicación web moderna de alta resiliencia diseñada para la extracción contable automatizada desde facturas y comprobantes en formato PDF (digitales o escaneados) y su consolidación directa en planillas Excel (`.xlsx`) profesionales con tipos de datos nativos, formato de moneda y fórmulas contables.
@@ -20,7 +20,8 @@
 - [Ejecución de Pruebas y Cobertura](#-ejecución-de-pruebas-y-cobertura)
 - [Calidad de Código y Linting](#-calidad-de-código-y-linting)
 - [Referencia de la API REST](#-referencia-de-la-api-rest)
-- [Observabilidad y Seguridad](#-observabilidad-y-seguridad)
+- [Observabilidad y Arquitectura](#-observabilidad-y-arquitectura)
+- [Seguridad](#-seguridad)
 - [Licencia](#-licencia)
 
 ---
@@ -114,8 +115,8 @@ docker compose down
 
 ### 1. Clonar el repositorio
 ```bash
-git clone https://github.com/HeidyFloresTest/InvoiceToSheet8.git
-cd InvoiceToSheet8
+git clone https://github.com/HeidyFloresTest/InvoiceToSheet9.git
+cd InvoiceToSheet9
 ```
 
 ### 2. Crear y activar entorno virtual
@@ -238,18 +239,26 @@ mypy .
 
 ---
 
-## 🛡 Observabilidad, Arquitectura y Seguridad
+## 🛡 Observabilidad y Arquitectura
 
 - **Arquitectura de Software:** Consulta el diseño detallado del pipeline, flujo de datos y diagramas de componentes en [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
-- **Política de Seguridad:** Lineamientos de divulgación responsable y SLA de respuesta en [SECURITY.md](SECURITY.md).
 - **Código de Conducta:** Consulta nuestro compromiso comunitario en [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
-- **Rastreo de Errores Estructurados en Memoria:** `StructuredErrorTracker` mantiene un buffer circular thread-safe con auditoría de incidencias categorizadas por tipo y código sin dependencia forzada de servicios externos.
+- **Rastreo de Errores Estructurados en Memoria:** `StructuredErrorTracker` mantiene un buffer circular thread-safe con auditoría de incidencias categorizadas por tipo y código sin dependencia forzada de servicios externos (`GET /api/errors/summary` y `GET /api/errors/recent`).
 - **Monitoreo de Excepciones en Producción (Sentry):** Integración nativa con `sentry-sdk[fastapi]`. Configura la variable `SENTRY_DSN` en tu entorno o `.env` para captura automática de trazas de error en tiempo real (si no está definida, opera como *no-op* sin interrumpir el servicio).
 - **Migraciones de Base de Datos (Alembic):** Control de versiones transaccional del esquema de base de datos relacional. Ejecuta `alembic upgrade head` para sincronizar cambios de forma determinista y sin riesgo de deriva de esquema (*schema drift*).
-- **Gestión Segura de Secretos en Producción:** Las credenciales (`DATABASE_URL`, `OPENAI_API_KEY`, `SENTRY_DSN`) se inyectan estrictamente vía Secret Managers (HashiCorp Vault, AWS Secrets Manager o Docker Secrets) y son validadas en el arranque por `config.Settings`.
 - **Trazabilidad:** Cada petición genera un identificador único `X-Request-ID` que se propaga a los logs estructurados JSON para auditoría.
 - **Resiliencia ante Fallos:** Si un archivo dentro de un lote está dañado o protegido con contraseña, el sistema aísla el error y procesa el resto sin interrupciones.
 - **Protección de Datos:** Ningún comprobante ni archivo Excel se almacena en el disco duro del servidor; todo el procesamiento ocurre estrictamente en memoria (`io.BytesIO`).
+
+---
+
+## 🔒 Seguridad
+
+Para consultar las políticas de seguridad de **InvoiceToSheet**, el modelo de amenazas STRIDE, el protocolo de reporte de vulnerabilidades y las directrices de aprovisionamiento y rotación de secretos en entornos productivos mediante Secret Managers (HashiCorp Vault, AWS Secrets Manager, GCP Secret Manager o Docker Secrets), consulta el documento formal [SECURITY.md](SECURITY.md).
+
+- **Gestión Segura de Secretos en Producción:** Las credenciales (`DATABASE_URL`, `OPENAI_API_KEY`, `SENTRY_DSN`) se inyectan estrictamente vía Secret Managers y son validadas en el arranque por `config.Settings`, levantando `ConfigurationError` ante tokens truncados o malformados.
+- **Cabeceras HTTP OWASP:** Inyección obligatoria de `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection: 1; mode=block` y `Referrer-Policy: strict-origin-when-cross-origin`.
+- **Auditoría Continua de Dependencias:** Escaneo automatizado de vulnerabilidades en CI con `pip-audit` y Dependabot activo.
 
 ---
 

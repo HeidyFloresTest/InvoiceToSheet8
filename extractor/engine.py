@@ -72,6 +72,33 @@ class RegexExtractor:
     }
 
     @classmethod
+    def _extract_amount_from_patterns(cls, text: str, patterns: list[str]) -> float:
+        """Extrae y normaliza el último importe monetario válido coincidente con una lista de patrones regex."""
+        for pattern in patterns:
+            matches = list(re.finditer(pattern, text, re.IGNORECASE))
+            if matches:
+                val = normalize_amount(matches[-1].group(1))
+                if val > 0:
+                    return val
+        return 0.0
+
+    @classmethod
+    def _search_first_valid_pattern(
+        cls, text: str, patterns: list[str], excluded: set[str] | None = None
+    ) -> str | None:
+        """Busca el primer patrón coincidente y retorna el primer grupo de captura filtrando exclusiones."""
+        for pattern in patterns:
+            match = re.search(pattern, text, re.IGNORECASE)
+            if match:
+                candidate = match.group(1).strip()
+                if not candidate:
+                    continue
+                if excluded and candidate.lower() in excluded:
+                    continue
+                return candidate
+        return None
+
+    @classmethod
     def extract(cls, text: str, filename: str) -> InvoiceData:
         """
         Ejecuta la extracción de datos sobre el texto plano extraído del PDF.
@@ -79,35 +106,24 @@ class RegexExtractor:
         lines = [line.strip() for line in text.splitlines() if line.strip()]
 
         # 1. Número de Factura
-        num_factura = "No identificado"
-        for pattern in cls.PATTERNS_INVOICE_NUMBER:
-            match = re.search(pattern, text, re.IGNORECASE)
-            if match:
-                candidate = match.group(1).strip()
-                if candidate.lower() not in ["de", "del", "fecha", "cliente", "total"]:
-                    num_factura = candidate
-                    break
+        num_factura = (
+            cls._search_first_valid_pattern(
+                text,
+                cls.PATTERNS_INVOICE_NUMBER,
+                excluded={"de", "del", "fecha", "cliente", "total"},
+            )
+            or "No identificado"
+        )
 
         # 2. Fecha de Emisión
-        raw_date = "No identificada"
-        for pattern in cls.PATTERNS_DATES:
-            match = re.search(pattern, text, re.IGNORECASE)
-            if match:
-                raw_date = match.group(1).strip()
-                break
+        raw_date = cls._search_first_valid_pattern(text, cls.PATTERNS_DATES) or "No identificada"
         fecha_emision = normalize_date(raw_date)
 
         # 3. ID Fiscal del Proveedor (Emisor)
-        id_fiscal = "No identificado"
-        labeled_match = re.search(cls.PATTERNS_TAX_ID["GENERIC"], text, re.IGNORECASE)
-        if labeled_match:
-            id_fiscal = labeled_match.group(1).strip()
-        else:
-            for tax_type in ["RFC", "NIF_CIF", "RUC", "RUT"]:
-                match = re.search(cls.PATTERNS_TAX_ID[tax_type], text, re.IGNORECASE)
-                if match:
-                    id_fiscal = match.group(1).strip()
-                    break
+        id_fiscal = cls._search_first_valid_pattern(text, [cls.PATTERNS_TAX_ID["GENERIC"]])
+        if not id_fiscal:
+            tax_patterns = [cls.PATTERNS_TAX_ID[k] for k in ["RFC", "NIF_CIF", "RUC", "RUT"]]
+            id_fiscal = cls._search_first_valid_pattern(text, tax_patterns) or "No identificado"
 
         # 4. Nombre del Proveedor (Emisor)
         nombre_proveedor = "No identificado"
@@ -168,33 +184,10 @@ class RegexExtractor:
         elif not found_currency and ("€" in text or "EUR" in text.upper()):
             moneda = "EUR"
 
-        # 7. Subtotal, Impuestos y Total
-        total_val = 0.0
-        for pattern in cls.PATTERNS_TOTAL:
-            matches = list(re.finditer(pattern, text, re.IGNORECASE))
-            if matches:
-                last_match = matches[-1].group(1)
-                total_val = normalize_amount(last_match)
-                if total_val > 0:
-                    break
-
-        subtotal_val = 0.0
-        for pattern in cls.PATTERNS_SUBTOTAL:
-            matches = list(re.finditer(pattern, text, re.IGNORECASE))
-            if matches:
-                last_match = matches[-1].group(1)
-                subtotal_val = normalize_amount(last_match)
-                if subtotal_val > 0:
-                    break
-
-        impuestos_val = 0.0
-        for pattern in cls.PATTERNS_TAXES:
-            matches = list(re.finditer(pattern, text, re.IGNORECASE))
-            if matches:
-                last_match = matches[-1].group(1)
-                impuestos_val = normalize_amount(last_match)
-                if impuestos_val > 0:
-                    break
+        # 7. Subtotal, Impuestos y Total (extracción modular unificada)
+        total_val = cls._extract_amount_from_patterns(text, cls.PATTERNS_TOTAL)
+        subtotal_val = cls._extract_amount_from_patterns(text, cls.PATTERNS_SUBTOTAL)
+        impuestos_val = cls._extract_amount_from_patterns(text, cls.PATTERNS_TAXES)
 
         # Reconciliación matemática básica
         if subtotal_val > 0 and total_val > 0 and impuestos_val == 0.0:

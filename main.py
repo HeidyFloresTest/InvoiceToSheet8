@@ -158,13 +158,7 @@ if not os.path.exists(STATIC_DIR):
     tags=["Observabilidad"],
     summary="Verificación de salud y preparación del microservicio",
 )
-@app.get(
-    "/api/health",
-    tags=["Observabilidad"],
-    summary="Verificación de salud y preparación del microservicio (alias)",
-    include_in_schema=False,
-)
-async def health_check(db: Session = Depends(get_db)):
+async def health(db: Session = Depends(get_db)):
     """Retorna el estado de disponibilidad del microservicio y chequeos de preparación (Base de datos y OCR)."""
     snapshot = metrics.get_snapshot()
 
@@ -195,6 +189,28 @@ async def health_check(db: Session = Depends(get_db)):
         "ocr_engine": ocr_status,
         "uptime_seconds": snapshot["uptime_seconds"],
     }
+
+
+@app.get(
+    "/healthz",
+    tags=["Observabilidad"],
+    summary="Liveness y readiness probe compatible con Kubernetes",
+    include_in_schema=False,
+)
+async def healthz(db: Session = Depends(get_db)):
+    """Liveness probe para orquestadores de contenedores y load balancers."""
+    return await health(db=db)
+
+
+@app.get(
+    "/api/health",
+    tags=["Observabilidad"],
+    summary="Verificación de salud y preparación del microservicio (alias)",
+    include_in_schema=False,
+)
+async def api_health(db: Session = Depends(get_db)):
+    """Alias para la ruta de salud de la API."""
+    return await health(db=db)
 
 
 @app.get("/api/metrics", tags=["Observabilidad"], summary="Métricas de rendimiento y uso (JSON)")

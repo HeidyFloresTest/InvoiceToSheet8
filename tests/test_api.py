@@ -14,10 +14,14 @@ def test_health_check(client):
     assert "uptime_seconds" in data
     assert data["service"] == "InvoiceToSheet API"
 
-    # Verificar también el alias /api/health
+    # Verificar también los alias /api/health y /healthz
     alias_resp = client.get("/api/health")
     assert alias_resp.status_code == 200
     assert alias_resp.json()["status"] == data["status"]
+
+    healthz_resp = client.get("/healthz")
+    assert healthz_resp.status_code == 200
+    assert healthz_resp.json()["status"] == data["status"]
 
 
 def test_metrics_endpoint(client):

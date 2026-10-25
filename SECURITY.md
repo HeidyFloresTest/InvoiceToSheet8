@@ -6,10 +6,11 @@ We provide security updates and patches for the following versions of **InvoiceT
 
 | Version | Supported          |
 | ------- | ------------------ |
+| 1.5.x   | :white_check_mark: |
 | 1.4.x   | :white_check_mark: |
 | 1.3.x   | :white_check_mark: |
 | 1.2.x   | :white_check_mark: |
-| 1.1.x   | :white_check_mark: |
+| 1.1.x   | :x:                |
 | 1.0.x   | :x:                |
 
 ---
@@ -38,13 +39,16 @@ The InvoiceToSheet engineering team takes product security seriously. If you bel
 InvoiceToSheet enforces strict separation of code and configuration, adhering to Twelve-Factor App principles and zero-trust credential hygiene:
 
 ### 1. Secret Manager Injection in Production
-Plain `.env` files are strictly prohibited in production and staging environments. All sensitive credentials must be injected dynamically at runtime via a centralized Secret Manager:
+Plain `.env` files are strictly prohibited in production and staging environments. All sensitive credentials are dynamically resolved at startup via `config.read_secret()`, supporting:
+- **Filesystem Secret Volume Mounts:** Kubernetes/Docker secrets mounted at `/run/secrets/<secret_name>` (e.g. `/run/secrets/openai_api_key`, `/run/secrets/database_url`).
+- **File Pointer Convention:** `<VAR>_FILE` variables pointing to vault-injected secret paths (e.g. `OPENAI_API_KEY_FILE=/vault/secrets/key`).
+- **Cloud Secret Managers:** Ingestion via **HashiCorp Vault Agent**, **AWS Secrets Manager**, **GCP Secret Manager**, or **Azure Key Vault**.
 
 | Credential | Provider Implementation Pattern | Rotation Cadence |
 | :--- | :--- | :--- |
-| `OPENAI_API_KEY` | Injected via **HashiCorp Vault**, **AWS Secrets Manager**, or **Docker Secrets** (`/run/secrets/openai_key`). | Every 90 days or immediately upon suspected compromise. |
-| `SENTRY_DSN` | Injected as environment variable from cloud platform metadata service (AWS SSM Parameter Store / GCP Secret Manager). | Annual or per environment lifecycle change. |
-| `DATABASE_URL` | Dynamic database credential leasing via HashiCorp Vault database secrets engine or AWS IAM RDS authentication. | Automated short-lived leases (24-hour TTL). |
+| `OPENAI_API_KEY` | Injected via **HashiCorp Vault**, **AWS Secrets Manager**, or **Docker Secrets** (`/run/secrets/openai_api_key` or `OPENAI_API_KEY_FILE`). | Every 90 days or immediately upon suspected compromise. |
+| `SENTRY_DSN` | Injected as environment variable from cloud platform metadata service (AWS SSM Parameter Store / GCP Secret Manager / `SENTRY_DSN_FILE`). | Annual or per environment lifecycle change. |
+| `DATABASE_URL` | Dynamic database credential leasing via HashiCorp Vault database secrets engine, AWS IAM RDS authentication, or `/run/secrets/database_url`. | Automated short-lived leases (24-hour TTL). |
 
 ### 2. Zero-Downtime Secret Rotation Procedure
 1. **Provision Secondary Key:** Generate a new API token in the external provider dashboard (e.g., OpenAI API portal).

@@ -165,35 +165,37 @@ uvicorn main:app --reload --host 127.0.0.1 --port 8000
 
 ## 🧪 Ejecución de Pruebas y Cobertura
 
-El proyecto cuenta con una suite completa y 100% hermética de **98 pruebas unitarias, de integración simulada y de seguridad** que cubren validación de esquemas, motor de expresiones regulares, normalizadores internacionales de divisas (USD, EUR, MXN, CLP, COP, PEN, BRL, GBP, CHF, JPY, CAD, AUD), preprocesamiento OCR adaptativo, paginación con filtros en base de datos, mitigaciones OWASP y endpoints HTTP:
+El proyecto cuenta con una suite completa y 100% hermética de **108 pruebas unitarias, de integración simulada y de seguridad** que cubren validación de esquemas, motor de expresiones regulares, normalizadores internacionales de divisas (USD, EUR, MXN, CLP, COP, PEN, BRL, GBP, CHF, JPY, CAD, AUD), preprocesamiento OCR adaptativo, paginación con filtros en base de datos, mitigaciones OWASP, resolución de secretos y endpoints HTTP:
 
 ```bash
 # Ejecutar suite hermética completa (excluye dependencias externas de binarios del sistema)
 pytest --cov=. --cov-report=term-missing
 ```
 
-Salida verificable de la ejecución (`93.93%` de cobertura real en entorno limpio):
+Salida verificable de la ejecución (`92.9%` de cobertura real en entorno limpio):
 ```text
 =============================== tests coverage ================================
 Name                       Stmts   Miss  Cover   Missing
 --------------------------------------------------------
+alembic/env.py                31      8    74%   38-47, 71-73, 77
+config.py                     43      2    95%   30, 83
 database.py                   62      0   100%
 excel_generator.py            90      0   100%
-extractor\__init__.py          7      0   100%
-extractor\engine.py          109      9    92%   106-107, 117-121, 164, 166, 201, 203
-extractor\exceptions.py       23      0   100%
-extractor\llm.py              39      4    90%   17-19, 72
-extractor\normalizers.py      51      2    96%   58-59
-extractor\ocr.py              40      8    80%   19-24, 49-50
-extractor\pipeline.py         40      0   100%
-main.py                      134     20    85%   114, 183, 233, 239-260, 269-270, 391-393, 409-412
-observability.py              90      2    98%   137, 189
+extractor/__init__.py          7      0   100%
+extractor/engine.py           93      9    90%   95, 97, 136-140, 183, 185
+extractor/exceptions.py       23      0   100%
+extractor/llm.py              39      4    90%   17-19, 72
+extractor/normalizers.py      51      2    96%   58-59
+extractor/ocr.py              40      8    80%   19-24, 49-50
+extractor/pipeline.py         40      0   100%
+main.py                      163     24    85%   148, 170-171, 179-180, 265, 327
+observability.py             132      2    98%   214, 266
 schemas.py                    56      0   100%
 --------------------------------------------------------
-TOTAL                        874     54    94%
+TOTAL                        891     63    93%
 Coverage XML written to file coverage.xml
-Required test coverage of 80.0% reached. Total coverage: 93.82%
-===================== 106 passed, 1 deselected in 11.63s ======================
+Required test coverage of 80.0% reached. Total coverage: 92.93%
+===================== 108 passed, 1 deselected in 11.53s ======================
 ```
 
 Para generar un reporte HTML interactivo de cobertura:
@@ -225,7 +227,9 @@ mypy .
 
 | Método | Endpoint | Descripción |
 | :--- | :--- | :--- |
-| `GET` | `/health` | Verificación de disponibilidad, versión activa y uptime del servicio. |
+| `GET` | `/health` | Verificación de disponibilidad y preparación (*readiness probe*): conectividad con base de datos, motor OCR y uptime. |
+| `GET` | `/healthz` | Liveness y readiness probe compatible con orquestadores Kubernetes y load balancers. |
+| `GET` | `/api/health` | Alias RESTful para verificación de salud y dependencias del sistema. |
 | `GET` | `/metrics` | Telemetría estándar de Prometheus / OpenMetrics para scraping. |
 | `GET` | `/api/metrics` | Telemetría en tiempo real en formato JSON estructurado. |
 | `GET` | `/api/errors/summary` | Resumen de telemetría de errores estructurados en memoria categorizados por código y tipo. |

@@ -90,8 +90,14 @@
 La forma más rápida y reproducible de levantar el proyecto en un entorno sandbox aislado con todas las dependencias del sistema (Tesseract OCR, Poppler):
 
 ```bash
-# Construir e iniciar el contenedor
-docker compose up --build
+# Construir e iniciar el contenedor en segundo plano
+docker compose up -d --build
+```
+
+Verificación inmediata del despliegue y estado de salud:
+```bash
+$ curl -s http://localhost:8000/health
+{"status":"healthy","service":"InvoiceToSheet API","version":"1.4.0","database":"connected","ocr_engine":"available","uptime_seconds":1.20}
 ```
 
 Abre tu navegador en:
@@ -158,12 +164,35 @@ uvicorn main:app --reload --host 127.0.0.1 --port 8000
 
 ## 🧪 Ejecución de Pruebas y Cobertura
 
-El proyecto cuenta con una suite completa de **más de 75 pruebas unitarias, de integración y de seguridad** que cubren validación de esquemas, motor de expresiones regulares, normalizadores de divisas (USD, EUR, MXN, CLP, COP, PEN, BRL, GBP), capa ORM de base de datos, fallbacks de OCR y LLM, mitigaciones OWASP y endpoints HTTP:
+El proyecto cuenta con una suite completa y 100% hermética de **98 pruebas unitarias, de integración simulada y de seguridad** que cubren validación de esquemas, motor de expresiones regulares, normalizadores internacionales de divisas (USD, EUR, MXN, CLP, COP, PEN, BRL, GBP, CHF, JPY, CAD, AUD), preprocesamiento OCR adaptativo, paginación con filtros en base de datos, mitigaciones OWASP y endpoints HTTP:
 
-Ejecutar pruebas con reporte de cobertura estricto (>80% requerido por CI):
 ```bash
+# Ejecutar suite hermética completa (excluye dependencias externas de binarios del sistema)
 pytest --cov=. --cov-report=term-missing
-coverage report --fail-under=80
+```
+
+Salida verificable de la ejecución (`93.93%` de cobertura real en entorno limpio):
+```text
+=============================== tests coverage ================================
+Name                       Stmts   Miss  Cover   Missing
+--------------------------------------------------------
+database.py                   62      0   100%
+excel_generator.py            90      0   100%
+extractor\__init__.py          7      0   100%
+extractor\engine.py          109      9    92%   106-107, 117-121, 164, 166, 201, 203
+extractor\exceptions.py       23      0   100%
+extractor\llm.py              39      4    90%   17-19, 72
+extractor\normalizers.py      51      2    96%   58-59
+extractor\ocr.py              40      8    80%   19-24, 49-50
+extractor\pipeline.py         40      0   100%
+main.py                      134     20    85%   114, 183, 233, 239-260, 269-270, 391-393, 409-412
+observability.py              90      2    98%   137, 189
+schemas.py                    56      0   100%
+--------------------------------------------------------
+TOTAL                        741     45    94%
+Coverage XML written to file coverage.xml
+Required test coverage of 80.0% reached. Total coverage: 93.93%
+====================== 98 passed, 1 deselected in 9.04s =======================
 ```
 
 Para generar un reporte HTML interactivo de cobertura:
@@ -200,6 +229,7 @@ mypy .
 | `GET` | `/api/metrics` | Telemetría en tiempo real en formato JSON estructurado. |
 | `POST` | `/api/extract` | Procesamiento por lotes de comprobantes PDF (`multipart/form-data`). |
 | `POST` | `/api/export-excel` | Generación en memoria y descarga del archivo `.xlsx` consolidado. |
+| `GET` | `/api/invoices` | Listado paginado formal (page, page_size, total_pages) con filtrado opcional por estado. |
 | `GET` | `/api/invoices/history` | Consulta paginada del historial de facturas persistidas en la base de datos ORM. |
 | `GET` | `/api/invoices/{id}` | Búsqueda y auditoría de factura individual por ID primario. |
 | `GET` | `/docs` | Documentación interactiva Swagger / OpenAPI. |

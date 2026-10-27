@@ -118,20 +118,22 @@ class InvoiceRepository:
             self.db.refresh(r)
         return records
 
-    def list_invoices(self, skip: int = 0, limit: int = 50) -> list[InvoiceRecord]:
-        """Obtiene un listado paginado de facturas registradas."""
-        return (
-            self.db.query(InvoiceRecord)
-            .order_by(InvoiceRecord.id.desc())
-            .offset(skip)
-            .limit(limit)
-            .all()
-        )
+    def list_invoices(
+        self, skip: int = 0, limit: int = 50, status: str | None = None
+    ) -> list[InvoiceRecord]:
+        """Obtiene un listado paginado de facturas registradas, con filtro opcional de estado."""
+        query = self.db.query(InvoiceRecord)
+        if status:
+            query = query.filter(InvoiceRecord.estado == status)
+        return query.order_by(InvoiceRecord.id.desc()).offset(skip).limit(limit).all()
 
     def get_by_id(self, invoice_id: int) -> InvoiceRecord | None:
         """Obtiene una factura por su ID primario."""
         return self.db.query(InvoiceRecord).filter(InvoiceRecord.id == invoice_id).first()
 
-    def count_total(self) -> int:
-        """Retorna el conteo total de facturas registradas."""
-        return self.db.query(InvoiceRecord).count()
+    def count_total(self, status: str | None = None) -> int:
+        """Retorna el conteo total de facturas registradas, con filtro opcional de estado."""
+        query = self.db.query(InvoiceRecord)
+        if status:
+            query = query.filter(InvoiceRecord.estado == status)
+        return query.count()

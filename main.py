@@ -7,7 +7,7 @@ telemetría y entrega de la interfaz gráfica estática.
 import os
 
 import sentry_sdk
-from fastapi import Depends, FastAPI, File, HTTPException, Request, UploadFile, status
+from fastapi import Depends, FastAPI, File, HTTPException, Query, Request, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -33,6 +33,7 @@ from schemas import (
     InvoiceData,
     InvoiceHistoryItem,
     InvoiceHistoryResponse,
+    PaginatedInvoicesResponse,
 )
 
 logger = setup_logger("InvoiceToSheetServer")
@@ -296,6 +297,40 @@ async def get_invoice_history(
         total=total,
         skip=skip,
         limit=limit,
+        invoices=[InvoiceHistoryItem.model_validate(item) for item in items],
+    )
+
+
+@app.get(
+    "/api/invoices",
+    response_model=PaginatedInvoicesResponse,
+    tags=["Historial"],
+    summary="Listado paginado de facturas con navegación y filtrado por estado",
+)
+async def list_invoices_paginated(
+    page: int = Query(1, ge=1, description="Número de página (1-indexed)"),
+    page_size: int = Query(20, ge=1, le=100, description="Cantidad de elementos por página"),
+    status_filter: str | None = Query(
+        None, alias="status", description="Filtro opcional por estado (success, warning, error)"
+    ),
+    db: Session = Depends(get_db),
+):
+    """
+    Retorna facturas con paginación formal (page, page_size, total_pages, total_items)
+    y soporte para filtrado por estado de extracción contable.
+    """
+    repo = InvoiceRepository(db)
+    skip = (page - 1) * page_size
+    items = repo.list_invoices(skip=skip, limit=page_size, status=status_filter)
+    total_items = repo.count_total(status=status_filter)
+    total_pages = (total_items + page_size - 1) // page_size if total_items > 0 else 1
+
+    return PaginatedInvoicesResponse(
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+        total_items=total_items,
+        status_filter=status_filter,
         invoices=[InvoiceHistoryItem.model_validate(item) for item in items],
     )
 

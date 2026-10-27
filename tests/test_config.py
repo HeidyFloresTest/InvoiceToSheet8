@@ -3,6 +3,8 @@ Pruebas unitarias para el módulo central de configuración tipada config.py.
 Valida carga por defecto, variables personalizadas y excepciones de configuración.
 """
 
+import os
+
 import pytest
 
 from config import ConfigurationError, Settings
@@ -80,9 +82,13 @@ def test_read_secret_from_k8s_secrets_path(monkeypatch):
     monkeypatch.delenv("DATABASE_URL", raising=False)
 
     fake_secret = "postgresql://prod_k8s_user:k8s_secure_pass@db:5432/invoices"
+    expected_path = os.path.join("/run/secrets", "database_url")
 
     with (
-        patch("os.path.isfile", side_effect=lambda p: p == "/run/secrets/database_url"),
+        patch(
+            "os.path.isfile",
+            side_effect=lambda p: os.path.normpath(p) == os.path.normpath(expected_path),
+        ),
         patch("builtins.open", mock_open(read_data=fake_secret)),
     ):
         resolved = read_secret("DATABASE_URL")

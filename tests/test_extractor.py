@@ -31,6 +31,10 @@ class TestNormalizers:
             ("CLP $ 850.000", 850000.00),
             ("R$ 4.500,75", 4500.75),
             ("£ 1,250.00", 1250.00),
+            ("¥ 15,000", 15000.00),
+            ("¥ 250000", 250000.00),
+            ("C$ 3,450.75", 3450.75),
+            ("A$ 1,200.00", 1200.00),
         ],
     )
     def test_normalize_amount(self, raw_input, expected):
@@ -131,6 +135,44 @@ class TestRegexExtractor:
         assert result.impuestos == 162.00
         assert result.total == 2162.00
         assert result.moneda == "CHF"
+        assert result.estado == "success"
+
+    def test_japanese_yen_invoice_extraction(self):
+        """Verifica extracción de facturas japonesas en JPY con símbolo ¥ e importes enteros."""
+        text = """
+        TOKYO TRADING CO. LTD.
+        INVOICE NO: JP-998234
+        DATE: 2024-05-18
+        TAX ID: 1234567890123
+        SUBTOTAL: ¥ 100,000
+        TAX 10%: ¥ 10,000
+        TOTAL: ¥ 110,000 JPY
+        """
+        result = RegexExtractor.extract(text, "tokyo_invoice.pdf")
+        assert result.numero_factura == "JP-998234"
+        assert result.subtotal == 100000.0
+        assert result.impuestos == 10000.0
+        assert result.total == 110000.0
+        assert result.moneda == "JPY"
+        assert result.estado == "success"
+
+    def test_british_pound_invoice_extraction(self):
+        """Verifica extracción de facturas británicas en GBP con VAT y símbolo £."""
+        text = """
+        LONDON CONSULTING LTD
+        VAT ID: GB123456789
+        INVOICE: UK-2024-441
+        DATE: 2024-04-12
+        SUBTOTAL: £ 2,500.00
+        VAT 20%: £ 500.00
+        TOTAL: £ 3,000.00 GBP
+        """
+        result = RegexExtractor.extract(text, "london_invoice.pdf")
+        assert result.numero_factura == "UK-2024-441"
+        assert result.subtotal == 2500.00
+        assert result.impuestos == 500.00
+        assert result.total == 3000.00
+        assert result.moneda == "GBP"
         assert result.estado == "success"
 
     def test_reconciliation_calculates_missing_tax(self):

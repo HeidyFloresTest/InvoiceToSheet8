@@ -65,7 +65,7 @@ MAX_FILE_SIZE_BYTES = 25 * 1024 * 1024
 app = FastAPI(
     title="InvoiceToSheet API",
     description="Microservicio de extracción contable inteligente y consolidación en Excel.",
-    version="1.5.0",
+    version="1.5.1",
     docs_url="/docs",
     redoc_url="/redoc",
 )

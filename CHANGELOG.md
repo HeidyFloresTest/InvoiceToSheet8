@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.1] - 2026-10-27
+
+### Added
+- **Native Secret Manager Ingestion (`config.read_secret`):** Implemented enterprise secret resolver supporting Kubernetes/Docker secret volume mounts (`/run/secrets/<secret_name>`) and `<VAR>_FILE` environment pointers prior to falling back to plaintext variables. Validated with comprehensive tests in `tests/test_config.py`.
+- **Dedicated Kubernetes Health Probes:** Exposed explicit route handlers for `GET /health`, `GET /healthz` (liveness probe), and `GET /api/health` with active DB ping and OCR readiness checks.
+- **Regex Modularization:** Refactored pattern matching logic in `RegexExtractor` using reusable `_extract_amount_from_patterns` and `_search_first_valid_pattern` methods, reducing repetitive regex loops.
+- **PEP 621 Multi-Maintainer Metadata:** Formally registered `Sofia Martinez` alongside `Heidy Flores` in `pyproject.toml` authors metadata.
+
 ## [1.5.0] - 2026-10-27
 
 ### Added

@@ -56,7 +56,7 @@ opentelemetry-api==1.45.1
     # via fastapi
 packaging==26.3
     # via pytesseract
-pandas==3.1.0
+pandas==2.3.3
     # via invoicetosheet (pyproject.toml)
 pdf2image==1.17.0
     # via invoicetosheet (pyproject.toml)
